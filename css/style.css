@@ -46,6 +46,8 @@ body {
 .game-container {
     width: 100%;
     max-width: 900px;
+    height: 100%;
+    max-width: 1200px;
     background-color: rgba(9, 10, 34, 0.9);
     border-radius: 10px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
@@ -56,7 +58,6 @@ body {
 .screen {
     display: none;
     /* padding: 2rem; */
-    height: 100%;
 }
 
 .active-screen {
@@ -205,7 +206,7 @@ h3 {
     background-color: var(--team1-color);
 } */
       .team1-color::before {
-            content: '';
+            content: '🍇';
             font-size: x-large;
             display: flex;
             justify-content: center;
@@ -645,7 +646,7 @@ input:checked + .slider:before {
     background-color: transparent;
     border-radius: 0;
     min-width: 550px;
-    min-height: 440px;
+    min-height: 600px;
     max-width: 650px;
 }
 
@@ -660,6 +661,23 @@ input:checked + .slider:before {
     cursor: pointer;
     transition: transform 0.2s;
     padding: 0.5rem;
+}
+
+.board-cell::before {
+    content: attr(data-id);
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
 }
 
 .board-cell:hover {
@@ -707,7 +725,48 @@ input:checked + .slider:before {
 .board-cell.pdb {
     background-color: #36ce69;
 }
+.board-cell.redevance {
+    background-color: #008b1e;
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
 
+.board-cell.depart {
+    background-color: #ffffff;
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    color: #000;
+    text-align: center;
+}
+
+.board-cell.logo {
+    background: linear-gradient(rgba(255,255,255,.5), rgba(0,0,0,.9)), url('https://www.portlarochelle.com/wp-content/uploads/2020/11/logo-Marianne.jpg');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #000000;
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    color: var(--accent-color);
+    width: 200px;
+    height: 180px;
+    position: absolute;
+    top: 35%;
+    left: 42%;
+    font-family: 'Press Start 2P', cursive;
+    font-weight: 600;
+    font-size: medium;
+    text-align: center;
+    line-height: 1.4;
+
+
+}
+.board-cell.logo::before,.board-cell.depart::before {
+    display: none;  /* Cela cache le pseudo-élément, donc l'ID ne s'affiche pas */
+}
 .cell-icon {
     width: 70%;
     height: 70%;
@@ -723,7 +782,6 @@ input:checked + .slider:before {
     align-items: center;
 }
 .cell-icon svg {
-    width: 100%;
     height: 100%;
 }
 
@@ -966,7 +1024,8 @@ input:checked + .slider:before {
         margin-left: 20px;
     }
 
-    .history-item .score-details p {
+    
+.history-item .score-details p {
         margin: 5px 0;
         color: #888;
     }

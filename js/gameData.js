@@ -1,88 +1,33 @@
-/**
- * Données du jeu de gestion immobilière
- */
-
-// Types de cartes
 const CARD_TYPES = {
-    PROPERTY: 'property',
-    BONUS: 'bonus',
-    FACTURE: 'facture',
-    INTERACTION: 'interaction',
-    BIENS: 'biens',
-    PDB: 'pdb'
+    DEPART: "depart",
+    BONUS: "bonus",
+    FACTURE: "facture",
+    INTERACTION: "interaction",
+    BIENS: "biens",
+    PDB: "pdb",
+    REDEVANCE: "redevance",
+    LOGO: "logo",
 };
 
-// Propriétés immobilières
-const PROPERTIES = [
-    { 
-        id: 1, 
-        name: 'Maison du directeur', 
-        description: 'Petite maison de maître', 
-        value: 350, 
-        type: 'house'
-    },
-    { 
-        id: 2, 
-        name: 'Appartement Vue Mer', 
-        description: 'Vue imprenable sur l\'océan', 
-        value: 280, 
-        type: 'apartment'
-    },
-    { 
-        id: 3, 
-        name: 'Terrain Constructible', 
-        description: 'Prêt pour un nouveau projet', 
-        value: 200, 
-        type: 'land'
-    },
-    { 
-        id: 4, 
-        name: 'Immeuble de Bureaux', 
-        description: 'Au centre des affaires', 
-        value: 450, 
-        type: 'commercial'
-    },
-    { 
-        id: 5, 
-        name: 'Villa de Luxe', 
-        description: 'Avec piscine et jardin', 
-        value: 650, 
-        type: 'house'
-    },
-    { 
-        id: 6, 
-        name: 'Studio Centre-Ville', 
-        description: 'Idéal pour étudiant', 
-        value: 150, 
-        type: 'apartment'
-    }
-];
-
-// Génère le plateau de jeu initial (grille 5x4 = 20 cases)
 function generateInitialBoard() {
     const board = [];
     const allTypes = [
-        CARD_TYPES.PROPERTY,
         CARD_TYPES.BONUS,
         CARD_TYPES.PDB,
         CARD_TYPES.FACTURE,
         CARD_TYPES.INTERACTION,
-        CARD_TYPES.BIENS
+        CARD_TYPES.BIENS,
     ];
-    
-    // Distribution des types de cartes (comme dans l'image)
+
+    // Distribution des types de cartes (comme dans l'image) ---31
     const typeDistribution = {
-        [CARD_TYPES.PROPERTY]: 0,   // Sera calculé ensuite
-        [CARD_TYPES.BONUS]: 4,      // ~4 cartes bonus (cadeaux)
-        [CARD_TYPES.PDB]: 6,        // ~6 cartes PDB (pdb)
-        [CARD_TYPES.FACTURE]: 4,    // ~4 cartes facture
-        [CARD_TYPES.INTERACTION]: 4, // ~4 cartes interaction
-        [CARD_TYPES.BIENS]: 2       // ~2 cartes biens
+        [CARD_TYPES.BONUS]: 8, // ~8 cartes bonus (cadeaux)
+        [CARD_TYPES.PDB]: 10, // ~10 cartes PDB (pdb)
+        [CARD_TYPES.FACTURE]: 7, // ~7 cartes facture
+        [CARD_TYPES.INTERACTION]: 8, // ~8 cartes interaction
+        [CARD_TYPES.BIENS]: 7, // ~7 cartes biens
     };
-    
-    // Le reste sera des propriétés
-    typeDistribution[CARD_TYPES.PROPERTY] = 20 - Object.values(typeDistribution).reduce((a, b) => a + b, 0);
-    
+
     // Crée un tableau avec tous les types selon leur distribution
     let typesToAssign = [];
     Object.entries(typeDistribution).forEach(([type, count]) => {
@@ -90,22 +35,116 @@ function generateInitialBoard() {
             typesToAssign.push(type);
         }
     });
-    
-    // Mélange le tableau des types pour une distribution aléatoire
+
+    // Triple mélange pour éviter les patterns répétitifs
     typesToAssign = shuffleArray(typesToAssign);
-    
-    // Crée le plateau avec 20 cellules (5x4)
-    for (let i = 0; i < 20; i++) {
+
+    const spiralOrder = getSpiralOrder();
+
+    // Ajoute la case depart fixe à la 1ere
+    board.push({
+        id: 0,
+        type: CARD_TYPES.DEPART,
+        highlight: false,
+        visited: false,
+        position: 0,
+        gridPosition: spiralOrder[0], // Dernière position dans la spirale
+    });
+
+    for (let i = 1; i < 31; i++) {
+        let type = typesToAssign[i];
+        // Vérifie si la carte actuelle est la même que la précédente
+        if (i > 1 && board[i - 1].type === type) {
+            // Si c'est la même, essaie de trouver une autre carte
+            for (let j = i; j < typesToAssign.length; j++) {
+                if (board[i - 1].type !== typesToAssign[j]) {
+                    [typesToAssign[i], typesToAssign[j]] = [
+                        typesToAssign[j],
+                        typesToAssign[i],
+                    ];
+                    type = typesToAssign[i];
+                    break;
+                }
+            }
+        }
         board.push({
             id: i,
-            type: typesToAssign[i],
+            type,
             highlight: false,
             visited: false,
-            position: i
+            position: i,
+            gridPosition: spiralOrder[i], // Position dans la grille 5*6
         });
     }
-    
+
+    // Ajoute la case redevance fixe à la fin
+    board.push({
+        id: 31,
+        type: CARD_TYPES.REDEVANCE,
+        highlight: false,
+        visited: false,
+        position: 31,
+        gridPosition: spiralOrder[31], // Dernière position dans la spirale
+    });
+
+    // Ajoute la case logo fixe à la fin
+    board.push({
+        id: 32,
+        type: CARD_TYPES.LOGO,
+        highlight: false,
+        visited: false,
+        position: 32,
+        gridPosition: spiralOrder[32], // Dernière position dans la spirale
+    });
+
     return board;
+}
+
+// Génère l'ordre de parcours en spirale pour une grille 5x4
+function getSpiralOrder() {
+    const rows = 6;
+    const cols = 6;
+    const spiral = [];
+
+    // Parcours en spirale: extérieur vers intérieur
+    // Commence en haut à gauche et va dans le sens horaire
+
+    let top = 0,
+        bottom = rows - 1;
+    let left = 0,
+        right = cols - 1;
+
+    while (top <= bottom && left <= right) {
+        // Parcourt la ligne du haut de gauche à droite
+        for (let i = left; i <= right; i++) {
+            spiral.push({ row: top, col: i });
+        }
+        top++;
+
+        // Parcourt la colonne de droite de haut en bas
+        for (let i = top; i <= bottom; i++) {
+            spiral.push({ row: i, col: right });
+        }
+        right--;
+
+        // Parcourt la ligne du bas de droite à gauche (si il reste des lignes)
+        if (top <= bottom) {
+            for (let i = right; i >= left; i--) {
+                spiral.push({ row: bottom, col: i });
+            }
+            bottom--;
+        }
+
+        // Parcourt la colonne de gauche de bas en haut (si il reste des colonnes)
+        if (left <= right) {
+            for (let i = bottom; i >= top; i--) {
+                spiral.push({ row: i, col: left });
+            }
+            left++;
+        }
+    }
+
+    return spiral;
 }
 
 // Fonction pour mélanger un tableau
@@ -122,47 +161,47 @@ function shuffleArray(array) {
 const INITIAL_GAME_STATE = {
     teams: {
         1: {
-            name: 'Équipe 1',
+            name: "Équipe 1",
             score: 0,
-            players: ['Pierre', 'Francis', 'Delphine'],
-            color: 'team1-color',
+            players: ["Pierre", "Francis", "Delphine"],
+            color: "team1-color",
             active: true,
             position: 0,
-            currentPlayer: 0 // New property to track the active player
+            currentPlayer: 0, // New property to track the active player
         },
         2: {
-            name: 'Équipe 2',
+            name: "Équipe 2",
             score: 0,
-            players: ['Paul', 'Ahmad', 'Estelle'],
-            color: 'team2-color',
+            players: ["Paul", "Ahmad", "Estelle"],
+            color: "team2-color",
             active: true,
             position: 0,
-            currentPlayer: 0
+            currentPlayer: 0,
         },
         3: {
-            name: 'Équipe 3',
+            name: "Équipe 3",
             score: 0,
             players: [],
-            color: 'team3-color',
+            color: "team3-color",
             active: false,
             position: 0,
-            currentPlayer: 0
+            currentPlayer: 0,
         },
         4: {
-            name: 'Équipe 4',
+            name: "Équipe 4",
             score: 0,
             players: [],
-            color: 'team4-color',
+            color: "team4-color",
             active: false,
             position: 0,
-            currentPlayer: 0
-        }
+            currentPlayer: 0,
+        },
     },
     currentTurn: 1,
     activeTeam: 1,
     activeCard: null,
     dice: 1,
     gameTime: 30 * 60, // 30 minutes en secondes
-    timerStarted: false,  // Indique si le timer a été démarré
-    gameBoard: generateInitialBoard()
+    timerStarted: false, // Indique si le timer a été démarré
+    gameBoard: generateInitialBoard(),
 };

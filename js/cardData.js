@@ -484,6 +484,11 @@ function getRandomCard(cardType) {
             return null;
     }
     
+    if (cards.length === 0) {
+        console.error(`Le tableau de cartes ${cardType} est vide`);
+        return null;
+    }
+    
     const randomIndex = Math.floor(Math.random() * cards.length);
     const card = { ...cards[randomIndex] };
     
