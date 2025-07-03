@@ -19,14 +19,14 @@ function generateInitialBoard() {
         CARD_TYPES.BIENS,
     ];
 
-    // Distribution des types de cartes (comme dans l'image) ---31
+    // Distribution des types de cartes (comme dans l'image) ---
     const typeDistribution = {
-        [CARD_TYPES.BONUS]: 8, // ~8 cartes bonus (cadeaux)
-        [CARD_TYPES.PDB]: 10, // ~10 cartes PDB (pdb)
-        [CARD_TYPES.FACTURE]: 7, // ~7 cartes facture
-        [CARD_TYPES.INTERACTION]: 8, // ~8 cartes interaction
-        [CARD_TYPES.BIENS]: 7, // ~7 cartes biens
-        [CARD_TYPES.REDEVANCE] : 2,
+        [CARD_TYPES.BONUS]: 6, //  cartes bonus (cadeaux)
+        [CARD_TYPES.PDB]: 5, //  cartes PDB (pdb)
+        [CARD_TYPES.FACTURE]: 7, //  cartes facture
+        [CARD_TYPES.INTERACTION]: 5, //  cartes interaction
+        [CARD_TYPES.BIENS]: 6, //  cartes biens
+        [CARD_TYPES.REDEVANCE] : 3, // cartes redevance
     };
 
     // Crée un tableau avec tous les types selon leur distribution
