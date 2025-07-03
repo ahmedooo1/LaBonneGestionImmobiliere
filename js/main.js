@@ -480,8 +480,10 @@ function handleCellClick(cellId, cellType) {
  * Gère l'affichage et le traitement des cartes Redevance
  */
 function handleRedevanceCard() {
-    // Montant fixe de 500.000€ pour la redevance (bonus)
-    const amount = 500;
+    // Montant pour la redevance (bonus)
+
+    const amount = getRandomInt(10,40)
+
 
     // Met à jour le texte et le montant dans la modale bonus (réutilisation)
     document.getElementById("bonus-text").textContent = "Redevance annuelle";

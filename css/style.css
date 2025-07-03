@@ -774,7 +774,20 @@ input:checked + .slider:before {
     justify-content: center;
     align-items: center;
 }
+
+
 .card-front-icon{
+    width: 90%;
+    height: 90%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.card-front-icon svg rect, svg{
+    width: 90% !important;
+  
+}
+.card-front-icon svg{
     width: 90%;
     height: 90%;
     display: flex;

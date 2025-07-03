@@ -26,6 +26,7 @@ function generateInitialBoard() {
         [CARD_TYPES.FACTURE]: 7, // ~7 cartes facture
         [CARD_TYPES.INTERACTION]: 8, // ~8 cartes interaction
         [CARD_TYPES.BIENS]: 7, // ~7 cartes biens
+        [CARD_TYPES.REDEVANCE] : 2,
     };
 
     // Crée un tableau avec tous les types selon leur distribution
@@ -51,7 +52,7 @@ function generateInitialBoard() {
         gridPosition: spiralOrder[0], // Dernière position dans la spirale
     });
 
-    for (let i = 1; i < 31; i++) {
+    for (let i = 1; i < 32; i++) {
         let type = typesToAssign[i];
         // Vérifie si la carte actuelle est la même que la précédente
         if (i > 1 && board[i - 1].type === type) {
@@ -77,15 +78,15 @@ function generateInitialBoard() {
         });
     }
 
-    // Ajoute la case redevance fixe à la fin
-    board.push({
-        id: 31,
-        type: CARD_TYPES.REDEVANCE,
-        highlight: false,
-        visited: false,
-        position: 31,
-        gridPosition: spiralOrder[31], // Dernière position dans la spirale
-    });
+    // // Ajoute la case redevance fixe à la fin
+    // board.push({
+    //     id: 31,
+    //     type: CARD_TYPES.REDEVANCE,
+    //     highlight: false,
+    //     visited: false,
+    //     position: 31,
+    //     gridPosition: spiralOrder[31], // Dernière position dans la spirale
+    // });
 
     // Ajoute la case logo fixe à la fin
     board.push({
