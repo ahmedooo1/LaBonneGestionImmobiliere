@@ -449,6 +449,91 @@ const INTERACTION_CARDS = [
         effect: "team_increase",
         value: 50,
         type: "team_effect"
+    },
+    // Cartes Question/Réponse
+    {
+        id: 12,
+        title: "Question Immobilière",
+        description: "Quel est le pourcentage maximum de charges récupérables sur un locataire ?",
+        type: "quiz",
+        correctReward: 100,
+        wrongPenalty: 50,
+        answers: [
+            { text: "50%", correct: false },
+            { text: "75%", correct: false },
+            { text: "100%", correct: true },
+            { text: "25%", correct: false }
+        ]
+    },
+    {
+        id: 13,
+        title: "Question Réglementation",
+        description: "Quelle est la durée minimale d'un bail d'habitation meublé ?",
+        type: "quiz",
+        correctReward: 80,
+        wrongPenalty: 40,
+        answers: [
+            { text: "1 an", correct: true },
+            { text: "2 ans", correct: false },
+            { text: "3 ans", correct: false },
+            { text: "6 mois", correct: false }
+        ]
+    },
+    {
+        id: 14,
+        title: "Question Gestion",
+        description: "Dans quel délai un propriétaire doit-il restituer le dépôt de garantie ?",
+        type: "quiz",
+        correctReward: 120,
+        wrongPenalty: 60,
+        answers: [
+            { text: "15 jours", correct: false },
+            { text: "1 mois", correct: false },
+            { text: "2 mois", correct: true },
+            { text: "3 mois", correct: false }
+        ]
+    },
+    {
+        id: 15,
+        title: "Question Fiscalité",
+        description: "Quel régime fiscal s'applique aux revenus fonciers en micro-foncier ?",
+        type: "quiz",
+        correctReward: 90,
+        wrongPenalty: 45,
+        answers: [
+            { text: "Abattement de 30%", correct: true },
+            { text: "Abattement de 50%", correct: false },
+            { text: "Aucun abattement", correct: false },
+            { text: "Abattement de 20%", correct: false }
+        ]
+    },
+    {
+        id: 16,
+        title: "Question Technique",
+        description: "Quelle est la surface minimale d'un logement décent ?",
+        type: "quiz",
+        correctReward: 70,
+        wrongPenalty: 35,
+        answers: [
+            { text: "7 m²", correct: false },
+            { text: "9 m²", correct: true },
+            { text: "12 m²", correct: false },
+            { text: "15 m²", correct: false }
+        ]
+    },
+    {
+        id: 17,
+        title: "Question Juridique",
+        description: "Quel est le préavis de départ d'un locataire en zone tendue ?",
+        type: "quiz",
+        correctReward: 110,
+        wrongPenalty: 55,
+        answers: [
+            { text: "1 mois", correct: true },
+            { text: "2 mois", correct: false },
+            { text: "3 mois", correct: false },
+            { text: "6 mois", correct: false }
+        ]
     }
 ];
 

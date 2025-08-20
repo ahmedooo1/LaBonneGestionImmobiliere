@@ -1084,7 +1084,7 @@ input:checked + .slider:before {
 }
 
 .danger-amount {
-    color: var(--danger-color);
+    color: var(--danger-color) !important;
     -webkit-text-stroke-width: 0.1px;
     -webkit-text-stroke-color: white;
 }
@@ -1355,6 +1355,29 @@ input:checked + .slider:before {
     color: var(--accent-color);
 }
 
+/* Styles pour les notifications */
+.game-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 10000;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    max-width: 300px;
+}
+
+.game-notification.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .teams-container {
@@ -1537,4 +1560,67 @@ input:checked + .slider:before {
     border-left: 3px solid #f6b93b;
     display: flex;
     align-items: center;
+}
+
+/* Styles pour les quiz */
+.quiz-container {
+    margin: 1.5rem 0;
+}
+
+.quiz-answers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.quiz-answer {
+    background-color: var(--secondary-color);
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    font-weight: bold;
+    color: white;
+}
+
+.quiz-answer:hover {
+    background-color: var(--primary-color);
+    border-color: var(--accent-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.quiz-answer.correct {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.quiz-answer.wrong {
+    background-color: var(--danger-color);
+    border-color: var(--danger-color);
+}
+
+.quiz-answer.disabled {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.team-option.current-team {
+    border: 2px solid var(--accent-color);
+    box-shadow: 0 0 10px rgba(246, 185, 59, 0.5);
+    font-weight: bold;
+}
+
+.team-option.current-team::after {
+    content: " 👑";
+    font-size: 0.8em;
+}
+
+@media (max-width: 768px) {
+    .quiz-answers {
+        grid-template-columns: 1fr;
+    }
 }
