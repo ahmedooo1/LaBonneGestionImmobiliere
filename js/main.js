@@ -539,7 +539,6 @@ function handleRedevanceCard() {
 function handleBonusCard() {
     // Utilise les données des cartes bonus
     const bonusCard = getRandomCard("bonus");
-
     // Affiche le titre de la carte
     document.getElementById("bonus-text").textContent = bonusCard.title;
 
@@ -955,22 +954,25 @@ function handleInteractionCard() {
                     const amount = card.amount || getRandomInt(1, 3) * 50;
 
                     // Met à jour le texte et le montant dans la modale bonus
-                    document.getElementById("bonus-text").textContent =
-                        card.title || "Bonus";
-                    document.getElementById("bonus-amount").textContent =
-                        `+${amount} K`;
-                    document
-                        .getElementById("bonus-amount")
-                        .classList.remove("danger-amount");
+                    document.getElementById("bonus-text").textContent = card.title || "Bonus";
 
-                    // Affiche la description si disponible
-                    const bonusDescElement =
-                        document.getElementById("bonus-description");
+                    const amountEl = document.getElementById("bonus-amount");
+                    const a = Number(amount) || 0;
+                    const sign = a < 0 ? "-" : a > 0 ? "+" : "";
+                    amountEl.textContent = `${sign}${Math.abs(a)} K`;
+
+                    // Toggle des classes selon le signe (évite le inline style)
+                    amountEl.classList.toggle("danger-amount", a < 0);
+                    amountEl.classList.toggle("success-amount", a > 0);
+                    // Nettoie un éventuel style inline résiduel
+                    amountEl.style.removeProperty("color");
+
+                    // Description
+                    const bonusDescElement = document.getElementById("bonus-description");
                     if (bonusDescElement) {
-                        bonusDescElement.textContent = card.description || "";
-                        bonusDescElement.style.display = card.description
-                            ? "block"
-                            : "none";
+                    const hasDesc = !!card.description;
+                    bonusDescElement.textContent = hasDesc ? card.description : "";
+                    bonusDescElement.style.display = hasDesc ? "block" : "none";
                     }
 
                     // Affiche la modale bonus avec l'animation de retournement

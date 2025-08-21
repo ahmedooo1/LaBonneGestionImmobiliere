@@ -1602,16 +1602,32 @@ input:checked + .slider:before {
     background-color: var(--danger-color);
     border-color: var(--danger-color);
 }
+/* Etat "danger" pour la carte bonus (quand amount < 0) */
+#bonus-modal .modal-content.card-popup.danger {
+  background: #3a0d10; /* rouge sombre */
+  border: 2px solid #e74c3c;
+  box-shadow: 0 0 16px rgba(231,76,60,.35) inset, 0 8px 24px rgba(231,76,60,.25);
+}
 
+/* Optionnel: teinte le bouton */
+#bonus-modal .modal-content.card-popup.danger .retro-button {
+  background-color: #e74c3c;
+  border-color: #c0392b;
+}
+
+/* Déjà vu précédemment, au cas où */
+.success-amount { color: #2ecc71; }
+.danger-amount { color: #e74c3c; }
 .quiz-answer.disabled {
     pointer-events: none;
     opacity: 0.6;
 }
 
-.team-option.current-team {
+.team-option {
     border: 2px solid var(--accent-color);
-    box-shadow: 0 0 10px rgba(246, 185, 59, 0.5);
+    /* box-shadow: 0 0 10px rgba(246, 185, 59, 0.5); */
     font-weight: bold;
+    margin: 5px;
 }
 
 .team-option.current-team::after {

@@ -93,7 +93,8 @@ const PDB_CARDS = [
         title: "666",
         description: "Votre cession est minorée de 30%",
         effect: "reduction",
-        value: 30,
+        minAmount: 15,
+        maxAmount: 35,
         type: "special"
     },
     {
@@ -109,7 +110,8 @@ const PDB_CARDS = [
         title: "Chat noir",
         description: "Votre prochaine cession est minorée de 10%",
         effect: "reduction",
-        value: 10,
+        minAmount: 15,
+        maxAmount: 35,
         type: "special"
     },
     {
@@ -125,7 +127,8 @@ const PDB_CARDS = [
         title: "Miroir cassé",
         description: "Cession minorée de 20%",
         effect: "reduction",
-        value: 20,
+        minAmount: 15,
+        maxAmount: 35,
         type: "special"
     },
     {
@@ -250,7 +253,7 @@ const BONUS_CARDS = [
         title: "Patte de lapin",
         description: "Cession majorée de 10%",
         effect: "increase",
-        value: 10,
+        value : 10,
         type: "special"
     },
     {
@@ -313,13 +316,13 @@ const BIENS_CARDS = [
         id: 2,
         title: "Bien d'exception",
         description: "Belle bâtisse, classée aux monuments historiques",
-        value: 1000
+        value: 300
     },
     {
         id: 3,
         title: "Bien atypique",
         description: "Maison d'arrêt désaffectée",
-        value: 1500
+        value: 750
     },
     {
         id: 4,
@@ -337,7 +340,7 @@ const BIENS_CARDS = [
         id: 6,
         title: "Maison de directeur",
         description: "Petite maison de maître",
-        value: 350
+        value: 150
     },
     {
         id: 7,
