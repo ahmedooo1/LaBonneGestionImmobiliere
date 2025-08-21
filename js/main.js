@@ -63,7 +63,7 @@ let landSound;
 function blamSoundEffect() {
     // Joue un son quand le dé s'arrête
     try {
-        landSound = new Audio("../assets/blam.wav");
+        landSound = new Audio("assets/blam.wav");
         landSound.volume = 0.5;
 
         landSound.play().catch((e) => console.log("Pas de son disponible"));
@@ -99,7 +99,7 @@ function setupEventListeners() {
         }
         // Joue un son quand le dé s'arrête
         try {
-            landSound = new Audio("../assets/bigenGame.wav");
+            landSound = new Audio("assets/bigenGame.wav");
             landSound.volume = 0.5;
 
             landSound.play().catch((e) => console.log("Pas de son disponible"));
@@ -303,7 +303,7 @@ function saveTeamSetup() {
 }
 function dicelandBGSound() {
     try {
-        const dicelandBG = new Audio("../assets/dicelandBG.wav");
+        const dicelandBG = new Audio("assets/dicelandBG.wav");
         dicelandBG.volume = 0.5;
         dicelandBG.onended = function () {
             this.play().catch((e) => console.log("Pas de son disponible"));
@@ -336,7 +336,7 @@ function rollDice() {
 
     // Ajouter un son de dé qui roule
     try {
-        const rollSound = new Audio("../assets/diceland.wav");
+        const rollSound = new Audio("assets/diceland.wav");
         rollSound.volume = 0.5;
         rollSound.play().catch((e) => console.log("Pas de son disponible"));
     } catch (e) {
@@ -373,7 +373,7 @@ function rollDice() {
             diceOverlay.classList.remove("show");
             // Joue un son quand le dé s'arrête
             try {
-                landSound = new Audio("../assets/trn.wav");
+                landSound = new Audio("assets/trn.wav");
                 landSound.volume = 0.5;
 
                 landSound
