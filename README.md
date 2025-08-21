@@ -63,10 +63,10 @@ Un jeu de plateau numérique immobilier français avec des mécaniques de jeu co
 
 ```bash
 # Cloner le repository
-git clone https://github.com/votre-username/la-bonne-gestion-immobiliere.git
+git clone https://github.com/ahmedooo1/LaBonneGestionImmobiliere.git
 
 # Naviguer dans le dossier
-cd la-bonne-gestion-immobiliere
+cd LaBonneGestionImmobiliere
 
 # Lancer un serveur local (Python exemple)
 python3 -m http.server 5000
