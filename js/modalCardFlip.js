@@ -10,20 +10,90 @@ const CARD_MODAL_MAP = {
     biens: "biens-modal",
     pdb: "pdb-modal",
     interaction: "interaction-modal",
+    redevance: "redevance-modal",
 };
+/**
+ * Lit le contenu de la carte à haute voix, y compris le nom, la description et d'autres détails
+ * @param {Object} card - L'objet carte complet (e.g., { title, description, amount, effect })
+ * @param {String} cardType - Le type de carte ('bonus', 'facture', etc.)
+ */
+function readCardContent(card, cardType) {
+    if (!card) {
+        console.error(
+            "Aucune carte fournie pour la lecture. Utilisation d'un message par défaut.",
+        );
+        const defaultText = `Aucune carte disponible pour ${cardTypeToName(cardType)}.`;
+        speakText(defaultText); // Utilisez une fonction pour lire le texte
+        return;
+    }
+
+    // Construire le texte complet à lire
+    let speechText = `Carte  ${cardTypeToName(cardType)}. `;
+    speechText += `${card.title || "Non spécifié"}. `;
+
+    if (cardTypeToName(cardType) === "Interaction") {
+        if (card.description) {
+            speechText += ` ${card.description}. `;
+        }
+    } else {
+        if (card.effect === "increase") {
+            speechText += ` ${card.description}. `;
+
+            speechText += `+${card.amount}% sur votre prochaine transaction`;
+        } else if (card.effect === "no_rent") {
+            speechText += ` ${card.description}. `;
+
+            speechText += "Pas de loyer au prochain tour";
+        } else {
+            if (card.description) {
+                speechText += ` ${card.description}. `;
+            }
+            if (card.amount) {
+                speechText += `Montant : ${card.amount} K. `;
+            } else if (card.effect) {
+                speechText += `Effet spécial : ${card.effect} avec valeur ${card.amount || "non spécifiée"}. `;
+            } else {
+                speechText += `Aucun montant ou effet spécifié. `;
+            }
+        }
+    }
+
+    const voices = speechSynthesis.getVoices();
+    maleVoice = voices.find(
+        (voice) => voice.name === "Microsoft Paul - French (France)",
+    );
+
+    const speech = new SpeechSynthesisUtterance(speechText);
+    speech.lang = "fr-FR"; // Langue française
+    speech.volume = 1; // Volume maximum
+    speech.rate = 1; // Vitesse normale
+    speech.pitch = 1; // Ton normal
+    if (maleVoice) {
+        speech.voice = maleVoice;
+    }
+
+    // Lire le texte
+    window.speechSynthesis.speak(speech);
+}
 
 /**
  * Convertit un modal standard en une carte flip et l'affiche
  * @param {string} cardType - Le type de carte ('bonus', 'facture', etc.)
+ * @param {Object} card - L'objet carte complet pour lire le contenu
  * @param {Function} onFlipComplete - Callback exécuté une fois que la carte est retournée
  */
-function showFlipCardModal(cardType) {
-    console.log(`Starting flip card modal for type: ${cardType}`);
+function showFlipCardModal(cardType, card) {
+    console.log(
+        `Tentative d'affichage de la carte pour le type: ${cardType}`,
+        card,
+    );
 
     // Récupère l'ID du modal correspondant au type de carte
     const modalId = CARD_MODAL_MAP[cardType.toLowerCase()];
     if (!modalId) {
-        console.error(`No modal ID found for card type: ${cardType}`);
+        console.error(
+            `Aucune carte valide fournie pour le type ${cardType}. Utilisation d'une carte par défaut ou annulation.`,
+        );
         return;
     }
 
@@ -127,8 +197,9 @@ function showFlipCardModal(cardType) {
 
     // Joue un son quand la carte apparaît
     try {
-        const cardSound = new Audio("../assets/card-appear.wav");
+        const cardSound = new Audio("assets/card-appear.wav");
         cardSound.volume = 0.5;
+        // Pour HTTPS/GitHub Pages, doit être déclenché par une interaction utilisateur
         cardSound.play().catch((e) => console.log("Pas de son disponible"));
     } catch (e) {
         console.log("Audio non supporté");
@@ -157,11 +228,12 @@ function showFlipCardModal(cardType) {
             const finalTransform =
                 window.getComputedStyle(modalContent).transform;
             console.log(`Final transform after 0.8s:`, finalTransform);
+            readCardContent(card, cardType);
         }, 800);
 
         // Joue un son quand la carte se retourne
         try {
-            const flipSound = new Audio("../assets/card-flip.wav");
+            const flipSound = new Audio("assets/card-flip.wav");
             flipSound.volume = 0.5;
             flipSound.play().catch((e) => console.log("Pas de son disponible"));
         } catch (e) {
@@ -226,13 +298,13 @@ function cleanupModalStructure(modal) {
  */
 function cardTypeToName(cardType) {
     const types = {
-        bonus: "Carte Bonus",
-        facture: "Carte Facture",
-        biens: "Carte Biens",
+        bonus: "Bonus",
+        facture: "Facture",
+        biens: "Biens",
         pdb: "Pas de Bol",
         interaction: "Interaction",
         redevance: "Redevance",
     };
 
-    return types[cardType.toLowerCase()] || cardType;
+    return types[cardType?.toLowerCase()] || "";
 }
