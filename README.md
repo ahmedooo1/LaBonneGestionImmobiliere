@@ -160,4 +160,4 @@ Pour toute question ou suggestion concernant le projet, n'hésitez pas à ouvrir
 
 ---
 
-*Développé avec ❤️ pour les passionnés d'immobilier et de jeux de stratégie* App conçu pour la DGFIP par ETN76
+*Développé avec ❤️ pour les passionnés d'immobilier et de jeux de stratégie* App conçu pour DGFIP par ETN76
