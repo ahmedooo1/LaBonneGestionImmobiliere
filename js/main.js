@@ -99,7 +99,7 @@ function setupEventListeners() {
         }
         // Joue un son quand le dé s'arrête
         try {
-            landSound = new Audio("assets/bigenGame.wav");
+            landSound = new Audio("https://ahmedooo1.github.io/assets/bigenGame.wav");
             landSound.volume = 0.5;
 
             landSound.play().catch((e) => console.log("Pas de son disponible"));
@@ -1331,3 +1331,4 @@ function showNotification(message, duration = 3000) {
         notification.classList.remove('show');
     }, duration);
 }
+
