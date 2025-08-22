@@ -58,22 +58,7 @@ function readCardContent(card, cardType) {
         }
     }
 
-    const voices = speechSynthesis.getVoices();
-    maleVoice = voices.find(
-        (voice) => voice.name === "Microsoft Paul - French (France)",
-    );
 
-    const speech = new SpeechSynthesisUtterance(speechText);
-    speech.lang = "fr-FR"; // Langue française
-    speech.volume = 1; // Volume maximum
-    speech.rate = 1; // Vitesse normale
-    speech.pitch = 1; // Ton normal
-    if (maleVoice) {
-        speech.voice = maleVoice;
-    }
-
-    // Lire le texte
-    window.speechSynthesis.speak(speech);
 }
 
 /**

@@ -42,6 +42,24 @@ function initGame() {
 
     // Précharge les images depuis assets
     preloadAssets();
+    // a voir apres -----------------------------------------------------------------------
+    // const voices = speechSynthesis.getVoices();
+    // maleVoice = voices.find(
+    //     (voice) => voice.name === "Microsoft Paul - French (France)",
+    // );
+    // // Lire le texte
+    // let speechText = "Bienvenue dans votre jeu, La Bonne Gestion Immobilière"
+    //  const speech = new SpeechSynthesisUtterance(speechText);
+    // speech.lang = "fr-FR"; // Langue française
+    // speech.volume = 1; // Volume maximum
+    // speech.rate = 1; // Vitesse normale
+    // speech.pitch = 1; // Ton normal
+    // if (maleVoice) {
+    //     speech.voice = maleVoice;
+    // }
+
+    // // Lire le texte
+    // window.speechSynthesis.speak(speech);
 }
 
 // Précharge les images pour une utilisation ultérieure
@@ -1331,5 +1349,3 @@ function showNotification(message, duration = 3000) {
         notification.classList.remove('show');
     }, duration);
 }
-
-
