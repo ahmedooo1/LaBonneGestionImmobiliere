@@ -492,6 +492,9 @@ function handleCellClick(cellId, cellType) {
         case CARD_TYPES.REDEVANCE:
             handleRedevanceCard();
             break;
+        case CARD_TYPES.VIDEO:
+            handleVideoCard();
+            break;
     }
 }
 /**
@@ -1348,4 +1351,169 @@ function showNotification(message, duration = 3000) {
     setTimeout(() => {
         notification.classList.remove('show');
     }, duration);
+}
+
+/**
+ * Gère l'affichage et le traitement des cartes Vidéo
+ */
+function handleVideoCard() {
+    // Vérifier s'il reste des vidéos non vues
+    if (!hasUnwatchedVideos()) {
+        // Toutes les vidéos ont été vues, donner un bonus par défaut
+        showNotification("Toutes les vidéos ont déjà été visionnées ! Bonus automatique.");
+        
+        const gameState = getGameState();
+        const bonusAmount = 100;
+        updateTeamScore(gameState.activeTeam, bonusAmount);
+        
+        const activeTeam = gameState.teams[gameState.activeTeam];
+        const currentPlayer = activeTeam.players[activeTeam.currentPlayer];
+        if (currentPlayer) {
+            updatePlayerTurn(
+                currentPlayer,
+                `Tour: +${bonusAmount} K (toutes les vidéos vues)`,
+            );
+        }
+        
+        updateTeamsDisplay();
+        return;
+    }
+
+    // Obtenir une vidéo aléatoire non vue
+    const video = getRandomUnwatchedVideo();
+    if (!video) {
+        console.error("Aucune vidéo disponible");
+        return;
+    }
+
+    // Marquer la vidéo comme vue
+    markVideoAsWatched(video.id);
+
+    // Configurer et afficher la modale vidéo
+    document.getElementById("video-title").textContent = video.title;
+    document.getElementById("video-description").textContent = video.description;
+    
+    // Configurer le lecteur vidéo
+    const videoPlayer = document.getElementById("main-video-player");
+    videoPlayer.src = `assets/${video.filename}`;
+    
+    // Cacher la section questions au début
+    document.getElementById("video-questions-section").style.display = "none";
+    
+    // Afficher la modale
+    toggleModal("video-quiz-modal", true);
+    
+    // Stocker les données de la vidéo pour les questions
+    window.currentVideoData = video;
+    
+    // Écouter la fin de la vidéo
+    videoPlayer.onended = () => {
+        showVideoQuestions(video);
+    };
+    
+    // Permettre de passer la vidéo (pour les tests)
+    videoPlayer.onclick = () => {
+        if (videoPlayer.paused) {
+            videoPlayer.play();
+        } else {
+            videoPlayer.pause();
+        }
+    };
+}
+
+/**
+ * Affiche les questions après la fin d'une vidéo
+ */
+function showVideoQuestions(video) {
+    if (!video.questions || video.questions.length === 0) {
+        // Pas de questions, donner un bonus automatique
+        showNotification("Vidéo visionnée ! Bonus automatique.");
+        const gameState = getGameState();
+        updateTeamScore(gameState.activeTeam, 50);
+        toggleModal("video-quiz-modal", false);
+        updateTeamsDisplay();
+        return;
+    }
+
+    // Choisir une question aléatoire
+    const randomQuestion = video.questions[Math.floor(Math.random() * video.questions.length)];
+    
+    // Afficher la section questions
+    document.getElementById("video-questions-section").style.display = "block";
+    document.getElementById("video-question-text").textContent = randomQuestion.question;
+    
+    // Créer les boutons de réponse
+    const answersContainer = document.getElementById("video-quiz-answers");
+    answersContainer.innerHTML = "";
+    
+    randomQuestion.answers.forEach((answer, index) => {
+        const answerButton = document.createElement("div");
+        answerButton.className = "quiz-answer";
+        answerButton.textContent = answer.text;
+        answerButton.onclick = (event) => handleVideoQuizAnswer(
+            answer.correct, 
+            randomQuestion, 
+            event.target
+        );
+        answersContainer.appendChild(answerButton);
+    });
+    
+    // Faire défiler vers les questions
+    document.getElementById("video-questions-section").scrollIntoView({
+        behavior: 'smooth'
+    });
+}
+
+/**
+ * Gère la réponse à une question vidéo
+ */
+function handleVideoQuizAnswer(isCorrect, question, clickedButton) {
+    const gameState = getGameState();
+    
+    // Désactiver tous les boutons de réponse
+    const answerButtons = document.querySelectorAll('#video-quiz-answers .quiz-answer');
+    answerButtons.forEach(button => {
+        button.classList.add('disabled');
+    });
+    
+    // Marquer visuellement la bonne/mauvaise réponse
+    answerButtons.forEach(button => {
+        const buttonAnswer = question.answers.find(a => a.text === button.textContent);
+        if (buttonAnswer && buttonAnswer.correct) {
+            button.classList.add('correct');
+        } else if (button === clickedButton && !isCorrect) {
+            button.classList.add('wrong');
+        }
+    });
+    
+    // Attendre un peu pour que l'utilisateur voie le résultat
+    setTimeout(() => {
+        toggleModal("video-quiz-modal", false);
+        
+        // Calculer le bonus/malus
+        const amount = isCorrect ? question.correctReward : -question.wrongPenalty;
+        const resultText = isCorrect ? "Bonne réponse !" : "Mauvaise réponse...";
+        
+        // Mettre à jour le score
+        updateTeamScore(gameState.activeTeam, amount);
+        
+        // Ajouter à l'historique
+        const activeTeam = gameState.teams[gameState.activeTeam];
+        const currentPlayer = activeTeam.players[activeTeam.currentPlayer];
+        if (currentPlayer) {
+            updatePlayerTurn(
+                currentPlayer,
+                `Tour: ${amount > 0 ? '+' : ''}${amount} K pour Vidéo Quiz - ${resultText}`,
+            );
+        }
+        
+        // Afficher le résultat
+        if (isCorrect) {
+            showNotification(`${resultText} +${question.correctReward} K`);
+        } else {
+            showNotification(`${resultText} -${question.wrongPenalty} K`);
+        }
+        
+        updateTeamsDisplay();
+    }, 2000); // Attendre 2 secondes pour voir le résultat
 }

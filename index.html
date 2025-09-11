@@ -218,6 +218,31 @@
             </div>
         </div>
 
+        <!-- Modal Vidéo avec Questions -->
+        <div id="video-quiz-modal" class="modal">
+            <div class="modal-content video-quiz-content">
+                <div class="video-section">
+                    <h3 id="video-title">Vidéo</h3>
+                    <div class="video-player">
+                        <video id="main-video-player" controls>
+                            <source src="" type="video/mp4">
+                            Votre navigateur ne supporte pas la lecture vidéo.
+                        </video>
+                    </div>
+                    <p id="video-description"></p>
+                </div>
+                
+                <!-- Section questions (cachée pendant la vidéo) -->
+                <div id="video-questions-section" class="video-questions-section" style="display: none;">
+                    <h3>Question sur la vidéo</h3>
+                    <p id="video-question-text"></p>
+                    <div id="video-quiz-answers" class="quiz-answers">
+                        <!-- Les réponses seront ajoutées dynamiquement -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="win-modal" class="modal">
             <div class="modal-content">
                 <div class="win-badge">
@@ -333,6 +358,7 @@
         </div>
     </div>    <script src="js/gameData.js"></script>
     <script src="js/cardData.js"></script>
+    <script src="js/videoData.js"></script>
     <script src="js/gameUtils.js"></script>
     <script src="js/gameState.js"></script>
     <script src="js/modalCardFlip.js"></script>

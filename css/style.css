@@ -1618,9 +1618,112 @@ input:checked + .slider:before {
 /* Déjà vu précédemment, au cas où */
 .success-amount { color: #2ecc71; }
 .danger-amount { color: #e74c3c; }
+
+/* Styles pour la modale vidéo avec questions */
+.video-quiz-content {
+    max-width: 800px;
+    width: 90%;
+}
+
+.video-section {
+    margin-bottom: 2rem;
+}
+
+.video-player {
+    margin: 1rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.video {
+border: 1px solid white;
+border-radius: 8px;
+background-color: violet;
+}
+.video-player video {
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+    
+
+}
+
+.video-questions-section {
+    border-top: 2px solid var(--primary-color);
+    padding-top: 1.5rem;
+}
+
+.video-questions-section h3 {
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+}
+
+#video-question-text {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+/* Styles pour les réponses du quiz vidéo */
+#video-quiz-answers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.quiz-answer {
+    background: var(--secondary-color);
+    color: var(--light-color);
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.quiz-answer:hover:not(.disabled) {
+    background: var(--primary-color);
+    border-color: var(--accent-color);
+    box-shadow: 0 4px 12px rgba(74, 105, 189, 0.3);
+    transform: translateY(-2px);
+}
+
 .quiz-answer.disabled {
     pointer-events: none;
     opacity: 0.6;
+}
+
+.quiz-answer.correct {
+    background: var(--success-color) !important;
+    border-color: var(--success-color) !important;
+    color: #2c3e50 !important;
+    font-weight: bold;
+}
+
+.quiz-answer.wrong {
+    background: var(--danger-color) !important;
+    border-color: var(--danger-color) !important;
+    color: var(--light-color) !important;
+    font-weight: bold;
+}
+
+/* Adaptation pour mobile */
+@media (max-width: 768px) {
+    .video-quiz-content {
+        width: 95%;
+        margin: 1rem;
+    }
+    
+    .video-player video {
+        max-height: 250px;
+    }
+    
+    #video-quiz-answers {
+        grid-template-columns: 1fr;
+    }
 }
 
 .team-option {
@@ -1633,10 +1736,4 @@ input:checked + .slider:before {
 .team-option.current-team::after {
     content: " 👑";
     font-size: 0.8em;
-}
-
-@media (max-width: 768px) {
-    .quiz-answers {
-        grid-template-columns: 1fr;
-    }
 }

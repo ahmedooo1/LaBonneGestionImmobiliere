@@ -252,8 +252,14 @@ function renderGameBoard() {
                 case CARD_TYPES.LOGO:
                     iconSvg = `La Bonne Gestion Immobilière`;
                     break;
+                case CARD_TYPES.VIDEO:
+                    iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z"/>
+                        <circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="2" fill="none"/>
+                    </svg>`;
+                    break;
                 default:
-                    console.log("Type de carte non reconnu:", cellType);
+                    console.log("Type de carte non reconnu:", cell.type);
             }
 
             iconElement.innerHTML = iconSvg;
