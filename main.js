@@ -1069,11 +1069,11 @@ function handleQuizAnswer(isCorrect, card, clickedButton) {
         
         // Afficher le résultat dans la modale bonus/malus
                // Afficher le résultat
-        if (isCorrect) {
-            showNotification(`${resultText} +${card.correctReward} K`);
-        } else {
-            showNotification(`${resultText} -${card.wrongPenalty} K`);
-        }
+ if (isCorrect) {
+    showNotification(`${resultText} +${card.correctReward} K`, true); // Passer true pour indiquer que c'est correct
+} else {
+    showNotification(`${resultText} -${card.wrongPenalty} K`, false); // Passer false pour indiquer que ce n'est pas correct
+}
         
         updateTeamsDisplay(); 
     }, 1500); // Attendre 1.5 secondes pour voir le résultat
@@ -1306,7 +1306,7 @@ function handlePDBCard() {
 /**
  * Affiche une notification temporaire à l'utilisateur
  */
-function showNotification(message, duration = 3000) {
+function showNotification(message, isCorrect = false, duration = 3000) {
     // Créer l'élément de notification s'il n'existe pas
     let notification = document.getElementById('game-notification');
     if (!notification) {
@@ -1318,11 +1318,23 @@ function showNotification(message, duration = 3000) {
 
     // Afficher le message
     notification.textContent = message;
+
+    // Ajouter la classe pour le fond vert si la réponse est correcte
+    if (isCorrect) {
+        notification.classList.add('bg-correct');
+        notification.classList.remove('bg-wrong'); // Assurez-vous de retirer la classe bg-wrong
+    } else {
+        notification.classList.add('bg-wrong');
+        notification.classList.remove('bg-correct'); // Assurez-vous de retirer la classe bg-correct
+    }
+
     notification.classList.add('show');
 
     // Masquer après la durée spécifiée
     setTimeout(() => {
         notification.classList.remove('show');
+        notification.classList.remove('bg-correct');
+        notification.classList.remove('bg-wrong');
     }, duration);
 }
 
@@ -1503,11 +1515,11 @@ function handleVideoQuizAnswer(isCorrect, question, clickedButton) {
         }
         
         // Afficher le résultat
-        if (isCorrect) {
-            showNotification(`${resultText} +${question.correctReward} K`);
-        } else {
-            showNotification(`${resultText} -${question.wrongPenalty} K`);
-        }
+if (isCorrect) {
+    showNotification(`${resultText} +${question.correctReward} K`, true); // Passer true pour indiquer que c'est correct
+} else {
+    showNotification(`${resultText} -${question.wrongPenalty} K`, false); // Passer false pour indiquer que ce n'est pas correct
+}
         
         updateTeamsDisplay();
     }, 2000); // Attendre 2 secondes pour voir le résultat
