@@ -25,11 +25,11 @@ function generateInitialBoard() {
     const typeDistribution = {
         [CARD_TYPES.BONUS]: 6, //  cartes bonus (cadeaux)
         [CARD_TYPES.PDB]: 5, //  cartes PDB (pdb)
-        [CARD_TYPES.FACTURE]: 7, //  cartes facture
+        [CARD_TYPES.FACTURE]: 5, //  cartes facture
         [CARD_TYPES.INTERACTION]: 4, //  cartes interaction (réduit de 1)
-        [CARD_TYPES.BIENS]: 6, //  cartes biens
+        [CARD_TYPES.BIENS]: 5, //  cartes biens
         [CARD_TYPES.REDEVANCE] : 3, // cartes redevance
-        [CARD_TYPES.VIDEO] : 1, // 1 carte vidéo
+        [CARD_TYPES.VIDEO] : 4, // 1 carte vidéo
     };
 
     // Crée un tableau avec tous les types selon leur distribution

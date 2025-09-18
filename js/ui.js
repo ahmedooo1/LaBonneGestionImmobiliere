@@ -24,74 +24,266 @@ function toggleModal(modalId, show) {
             modal.classList.add("show");
         } else {
             modal.classList.remove("show");
+            
+            // Si on ferme la modale vidéo, reprendre le son de fond
+            if (modalId === "video-modal" && window.videoPausedBG && window.dicelandBG) {
+                window.dicelandBG.play().catch((e) => console.log("Erreur reprise son:", e));
+                window.videoPausedBG = false;
+                
+                // Arrêter le timer de progression vidéo si il existe
+                if (window.videoTimer) {
+                    clearInterval(window.videoTimer);
+                    window.videoTimer = null;
+                }
+            }
+            
+            // Si on ferme la modale vidéo-quiz, reprendre le son de fond aussi
+            if (modalId === "video-quiz-modal" && window.videoPausedBG && window.dicelandBG) {
+                window.dicelandBG.play().catch((e) => console.log("Erreur reprise son:", e));
+                window.videoPausedBG = false;
+                
+                // Arrêter la vidéo si elle est en cours
+                const videoPlayer = document.getElementById("main-video-player");
+                if (videoPlayer) {
+                    videoPlayer.pause();
+                    videoPlayer.currentTime = 0;
+                }
+            }
         }
     }
 }
 
 function showScoreHistory() {
-    console.log("Exécution de showScoreHistory..."); // Log existant
+    console.log("Exécution de showScoreHistory..."); 
     const gameState = getGameState();
 
     if (!gameState || !gameState.teams) {
         console.error(
             "Erreur : gameState ou teams est undefined. Vérifiez les données du jeu.",
         );
-        return; // Arrêter si les données ne sont pas valides
+        return;
     }
 
-    let historyHTML = "<h3>Historique des Tours et Scores des Joueurs</h3>";
+    let historyHTML = `
+        <div class="history-header">
+            <h3>📊 Historique Complet du Jeu</h3>
+            <p class="history-subtitle">Toutes les actions et cartes jouées</p>
+        </div>
+    `;
 
-    let hasData = false; // Variable pour vérifier s'il y a des données
+    let hasData = false;
+    let allTurns = []; // Pour collecter tous les tours de tous les joueurs
 
+    // Collecter tous les tours de tous les joueurs
     Object.keys(gameState.teams).forEach((teamId) => {
         if (gameState.teams[teamId].active && gameState.teams[teamId].players) {
-            gameState.teams[teamId].players.forEach((player, index) => {
-                const scoreHistory = player.scoreHistory || [0]; // Scores existants
-                const turnHistory = player.turnHistory || []; // Nouvel historique des tours
-
-                if (scoreHistory.length > 0) {
-                    hasData = true;
-                    historyHTML += `<div class="history-item">
-                        <h4>Équipe ${teamId} - Joueur ${index + 1} (${player.name || "Inconnu"})</h4>
-                        <div class="score-details">`;
-
-                    scoreHistory.forEach((score, i) => {
-                        const turnDetail = turnHistory[i]
-                            ? turnHistory[i].description
-                            : "=========";
-                        let changeDetail = ""; // Détail du changement
-
-                        if (i > 0) {
-                            const previousScore = scoreHistory[i - 1];
-                            const change = score - previousScore; // Calcul de la différence
-                            const changeSign = change >= 0 ? "+" : ""; // Ajoute + pour positif
-                            changeDetail = `<p>Changement : ${changeSign}${change} (Score précédent: ${previousScore}, Score actuel: ${score})</p>`;
+            const team = gameState.teams[teamId];
+            
+            team.players.forEach((player, playerIndex) => {
+                const turnHistory = player.turnHistory || [];
+                const scoreHistory = player.scoreHistory || [0];
+                
+                console.log(`Joueur ${player.name || `Joueur ${playerIndex + 1}`}:`, {
+                    turnHistory: turnHistory.length,
+                    scoreHistory: scoreHistory.length
+                });
+                
+                // Si on a un historique de tours détaillé, l'utiliser
+                if (turnHistory.length > 0) {
+                    turnHistory.forEach((turn, turnIndex) => {
+                        const isOldFormat = typeof turn === 'string';
+                        
+                        let displayInfo = {};
+                        if (isOldFormat) {
+                            displayInfo = {
+                                description: turn,
+                                timestamp: 'Date inconnue',
+                                scoreChange: scoreHistory[turnIndex + 1] ? 
+                                    scoreHistory[turnIndex + 1] - scoreHistory[turnIndex] : 0,
+                                cardType: 'unknown',
+                                cardTitle: '',
+                                actionType: 'game'
+                            };
+                        } else {
+                            displayInfo = turn;
                         }
-
-                        historyHTML += `<div class="tour">
-                            <p><strong>Tour ${i + 1}:</strong> Score = ${score}</p>
-                            ${changeDetail}  // Ajoute le détail du changement si i > 0
-                            <p><strong>Détails:</strong> ${turnDetail}</p>
-                        </div>`;
+                        
+                        allTurns.push({
+                            teamId: teamId,
+                            teamName: team.name,
+                            playerName: player.name || `Joueur ${playerIndex + 1}`,
+                            turnData: displayInfo,
+                            globalTurnIndex: turnIndex
+                        });
                     });
-
-                    historyHTML += `</div></div>`;
+                } 
+                // Sinon, créer des entrées à partir de l'historique des scores
+                else if (scoreHistory.length > 1) {
+                    for (let i = 1; i < scoreHistory.length; i++) {
+                        const scoreChange = scoreHistory[i] - scoreHistory[i - 1];
+                        if (scoreChange !== 0) { // Seulement si il y a eu un changement
+                            allTurns.push({
+                                teamId: teamId,
+                                teamName: team.name,
+                                playerName: player.name || `Joueur ${playerIndex + 1}`,
+                                turnData: {
+                                    description: `Action de jeu (score ${scoreChange > 0 ? 'gagné' : 'perdu'})`,
+                                    timestamp: 'Historique ancien',
+                                    scoreChange: scoreChange,
+                                    cardType: scoreChange > 0 ? 'bonus' : 'facture',
+                                    cardTitle: `Action ${scoreChange > 0 ? 'positive' : 'négative'}`,
+                                    actionType: scoreChange > 0 ? 'gain' : 'perte'
+                                },
+                                globalTurnIndex: i - 1
+                            });
+                        }
+                    }
                 }
             });
-        } else {
-            console.log(
-                `Équipe ${teamId} n'est pas active ou n'a pas de joueurs.`,
-            );
         }
     });
 
-    if (!hasData) {
-        historyHTML +=
-            "<p>Aucun historique de scores ou de tours disponible. Jouez une partie pour générer des données !</p>";
-        console.log("Aucun historique de scores ou de tours trouvé.");
+    console.log("Teams found:", Object.keys(gameState.teams));
+    console.log("All turns collected:", allTurns.length);
+
+    // Trier par timestamp si possible, sinon par ordre d'ajout
+    allTurns.sort((a, b) => {
+        if (a.turnData.timestamp && b.turnData.timestamp && 
+            a.turnData.timestamp !== 'Date inconnue' && b.turnData.timestamp !== 'Date inconnue' &&
+            a.turnData.timestamp !== 'Historique ancien' && b.turnData.timestamp !== 'Historique ancien') {
+            return new Date(a.turnData.timestamp) - new Date(b.turnData.timestamp);
+        }
+        return 0; // Garder l'ordre original si pas de timestamp valide
+    });
+
+    if (allTurns.length > 0) {
+        hasData = true;
+        
+        historyHTML += `<div class="compact-history">`;
+        
+        allTurns.forEach((turnInfo, globalIndex) => {
+            const turn = turnInfo.turnData;
+            
+            // Icône selon le type de carte/action
+            let cardIcon = '🎲';
+            switch (turn.cardType) {
+                case 'bonus': cardIcon = '💰'; break;
+                case 'facture': cardIcon = '📄'; break;
+                case 'biens': cardIcon = '🏠'; break;
+                case 'interaction': cardIcon = '🤝'; break;
+                case 'pdb': cardIcon = '💸'; break;
+                case 'redevance': cardIcon = '📈'; break;
+                case 'video': cardIcon = '🎥'; break;
+                case 'system': cardIcon = '⚙️'; break;
+            }
+
+            // Couleur selon le changement de score
+            let changeClass = '';
+            let changeText = '';
+            if (turn.scoreChange > 0) {
+                changeClass = 'positive';
+                changeText = `+${turn.scoreChange}K`;
+            } else if (turn.scoreChange < 0) {
+                changeClass = 'negative';
+                changeText = `${turn.scoreChange}K`;
+            } else {
+                changeClass = 'neutral';
+                changeText = '±0K';
+            }
+
+            // Informations compactes pour survol
+            let tooltipInfo = '';
+            if (turn.cardDescription) {
+                tooltipInfo += `Description: ${turn.cardDescription}\\n`;
+            }
+            if (turn.cardDetails && turn.cardDetails.additionalInfo) {
+                Object.entries(turn.cardDetails.additionalInfo).forEach(([key, value]) => {
+                    tooltipInfo += `${key}: ${value}\\n`;
+                });
+            }
+
+            historyHTML += `
+                <div class="compact-turn-entry" title="${tooltipInfo}">
+                    <div class="turn-summary">
+                        <span class="turn-number">#${globalIndex + 1}</span>
+                        <span class="team-indicator" style="background: var(--team${turnInfo.teamId}-color)">
+                            ${turnInfo.teamName}
+                        </span>
+                        <span class="player-name">${turnInfo.playerName}</span>
+                        <span class="card-info">
+                            <span class="card-icon">${cardIcon}</span>
+                            <span class="card-title">${turn.cardTitle || turn.description}</span>
+                        </span>
+                        <span class="score-change ${changeClass}">${changeText}</span>
+                        <span class="turn-time">${turn.timestamp || ''}</span>
+                    </div>
+                    ${turn.cardDetails && turn.cardDetails.quizAnswer ? `
+                        <div class="quiz-info">
+                            <span class="quiz-answer ${turn.cardDetails.isCorrectAnswer ? 'correct' : 'wrong'}">
+                                ${turn.cardDetails.isCorrectAnswer ? '✅' : '❌'} ${turn.cardDetails.quizAnswer}
+                            </span>
+                        </div>
+                    ` : ''}
+                    ${turn.cardDetails && turn.cardDetails.targetTeam ? `
+                        <div class="target-info">🎯 ${turn.cardDetails.targetTeam}</div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        
+        historyHTML += `</div>`;
+        
+        // Résumé en bas
+        historyHTML += `
+            <div class="history-summary">
+                <h4>📋 Résumé de la Partie</h4>
+                <div class="summary-stats">
+                    <span>Total des actions: ${allTurns.length}</span>
+                    <span>Cartes bonus: ${allTurns.filter(t => t.turnData.cardType === 'bonus').length}</span>
+                    <span>Factures: ${allTurns.filter(t => t.turnData.cardType === 'facture').length}</span>
+                    <span>Biens acquis: ${allTurns.filter(t => t.turnData.cardType === 'biens').length}</span>
+                    <span>Interactions: ${allTurns.filter(t => t.turnData.cardType === 'interaction').length}</span>
+                </div>
+            </div>
+        `;
     }
 
-    console.log("HTML généré :", historyHTML); // Log pour vérifier le contenu
+    if (!hasData) {
+        // Diagnose pourquoi pas de données
+        let debugInfo = [];
+        Object.keys(gameState.teams).forEach((teamId) => {
+            if (gameState.teams[teamId].active && gameState.teams[teamId].players) {
+                const team = gameState.teams[teamId];
+                team.players.forEach((player, playerIndex) => {
+                    const turnHistory = player.turnHistory || [];
+                    const scoreHistory = player.scoreHistory || [0];
+                    debugInfo.push({
+                        team: team.name,
+                        player: player.name || `Joueur ${playerIndex + 1}`,
+                        turnHistory: turnHistory.length,
+                        scoreHistory: scoreHistory.length,
+                        score: player.score || 0
+                    });
+                });
+            }
+        });
+        
+        historyHTML += `
+            <div class="no-history">
+                <p>📝 Aucun historique d'actions trouvé</p>
+                <p>Jouez quelques cartes pour voir l'historique ici !</p>
+                <div class="debug-info">
+                    <details>
+                        <summary>Informations de débogage</summary>
+                        <pre>${JSON.stringify(debugInfo, null, 2)}</pre>
+                        <p>Nombre total d'équipes actives: ${Object.keys(gameState.teams).filter(id => gameState.teams[id].active).length}</p>
+                    </details>
+                </div>
+            </div>
+        `;
+    }
+
+    console.log("HTML généré :", historyHTML);
 
     const modal = document.createElement("div");
     modal.innerHTML = historyHTML;
@@ -160,6 +352,11 @@ function updateTeamsDisplay() {
 
     // Met à jour les informations du joueur actif
     updateCurrentPlayerInfo();
+    
+    // Met à jour l'affichage des effets de facture en attente
+    if (typeof updateBillEffectsDisplay === 'function') {
+        updateBillEffectsDisplay();
+    }
 }
 
 
@@ -507,6 +704,12 @@ function showPropertyModal(property) {
 
 // Affiche la modalité vidéo
 function showVideoModal(duration = "00:15") {
+    // Mettre en pause le son de fond
+    if (window.dicelandBG && !window.dicelandBG.paused) {
+        window.dicelandBG.pause();
+        window.videoPausedBG = true; // Marquer qu'on a mis en pause pour reprendre plus tard
+    }
+    
     document.getElementById("video-duration").textContent = duration;
     document.getElementById("progress-bar").style.width = "0%";
 
@@ -527,6 +730,13 @@ function showVideoModal(duration = "00:15") {
         if (progress >= 100) {
             clearInterval(timer);
             progress = 100;
+            
+            // Reprendre le son de fond après la vidéo
+            if (window.videoPausedBG && window.dicelandBG) {
+                window.dicelandBG.play().catch((e) => console.log("Erreur reprise son:", e));
+                window.videoPausedBG = false;
+            }
+            
             // Ferme automatiquement après la fin de la vidéo
             setTimeout(() => toggleModal("video-modal", false), 500);
         }
@@ -535,6 +745,63 @@ function showVideoModal(duration = "00:15") {
 
     // Stocke le timer pour pouvoir l'annuler si nécessaire
     window.videoTimer = timer;
+}
+
+/**
+ * Affiche un toast coloré avec le message donné
+ * @param {string} message - Le message à afficher
+ * @param {string} type - Le type de toast ('success' pour vert, 'error' pour rouge)
+ * @param {number} duration - Durée d'affichage en millisecondes (défaut: 3000)
+ */
+function showToast(message, type = 'success', duration = 3000) {
+    // Créer l'élément toast
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    
+    // Styles inline pour le toast
+    Object.assign(toast.style, {
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        padding: '15px 20px',
+        borderRadius: '8px',
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: '16px',
+        minWidth: '250px',
+        zIndex: '10000',
+        transform: 'translateX(100%)',
+        transition: 'transform 0.3s ease-in-out',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+    });
+    
+    // Couleurs selon le type
+    if (type === 'success') {
+        toast.style.backgroundColor = '#28a745'; // Vert
+        toast.style.border = '2px solid #1e7e34';
+    } else if (type === 'error') {
+        toast.style.backgroundColor = '#dc3545'; // Rouge
+        toast.style.border = '2px solid #bd2130';
+    }
+    
+    // Ajouter au DOM
+    document.body.appendChild(toast);
+    
+    // Animation d'entrée
+    setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // Suppression automatique
+    setTimeout(() => {
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (document.body.contains(toast)) {
+                document.body.removeChild(toast);
+            }
+        }, 300);
+    }, duration);
 }
 
 // Affiche la modalité de victoire

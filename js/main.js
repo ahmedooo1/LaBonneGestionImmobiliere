@@ -321,12 +321,13 @@ function saveTeamSetup() {
 }
 function dicelandBGSound() {
     try {
-        const dicelandBG = new Audio("assets/dicelandBG.wav");
+        dicelandBG = new Audio("assets/dicelandBG.wav"); // Utilise la variable globale
         dicelandBG.volume = 0.5;
-        dicelandBG.onended = function () {
-            this.play().catch((e) => console.log("Pas de son disponible"));
-        };
+        dicelandBG.loop = true; // Utilise loop au lieu de onended
         dicelandBG.play().catch((e) => console.log("Pas de son disponible"));
+        
+        // Rendre accessible globalement
+        window.dicelandBG = dicelandBG;
     } catch (e) {
         console.log("Audio non supporté");
     }
@@ -442,7 +443,12 @@ function nextTurn() {
     if (currentPlayer) {
         updatePlayerTurn(
             currentPlayer,
-            `Fin du tour: Passage au joueur suivant`,
+            `Fin du tour`,
+            {
+                scoreChange: 0,
+                cardType: 'system',
+                actionType: 'fin_tour'
+            }
         );
     }
     // Réactive le bouton de lancer de dé
@@ -541,9 +547,26 @@ function handleRedevanceCard() {
         const activeTeam = gameState.teams[gameState.activeTeam];
         const currentPlayer = activeTeam.players[activeTeam.currentPlayer];
         if (currentPlayer) {
+            const previousScore = currentPlayer.score || 0;
+            const newScore = previousScore + amount;
+            
             updatePlayerTurn(
                 currentPlayer,
-                `Tour: +${amount} K pour Redevance annuelle`,
+                `Redevance annuelle encaissée`,
+                {
+                    scoreChange: amount,
+                    previousScore: previousScore,
+                    newScore: newScore,
+                    cardType: 'redevance',
+                    cardTitle: 'Redevance annuelle',
+                    cardDescription: 'Encaissement de la redevance annuelle.',
+                    actionType: 'bonus',
+                    additionalInfo: {
+                        'Type de revenus': 'Redevance',
+                        'Montant': `${amount} K€`,
+                        'Périodicité': 'Annuelle'
+                    }
+                }
             );
         }
 
@@ -635,9 +658,27 @@ function handleBonusCard() {
             const activeTeam = gameState.teams[gameState.activeTeam];
             const currentPlayer = activeTeam.players[activeTeam.currentPlayer];
             if (currentPlayer) {
+                const previousScore = currentPlayer.score || 0;
+                const newScore = previousScore + bonusCard.amount;
+                
                 updatePlayerTurn(
                     currentPlayer,
-                    `Tour: +${bonusCard.amount} K pour bonus ${bonusCard.title}`,
+                    `Bonus reçu: ${bonusCard.title}`,
+                    {
+                        scoreChange: bonusCard.amount,
+                        previousScore: previousScore,
+                        newScore: newScore,
+                        cardType: 'bonus',
+                        cardTitle: bonusCard.title,
+                        cardDescription: bonusCard.description,
+                        cardId: bonusCard.id,
+                        actionType: 'bonus',
+                        additionalInfo: {
+                            'Type de bonus': 'Bonus classique',
+                            'Montant': `${bonusCard.amount} K€`,
+                            'Source': bonusCard.title
+                        }
+                    }
                 );
             }
             // Log after update to verify
@@ -650,21 +691,32 @@ function handleBonusCard() {
 }
 
 function handleFactureCard() {
+    const gameState = getGameState();
+    const activeTeamId = gameState.activeTeam;
+    
     // Utilise les données des cartes de facturation
     const factureCard = getRandomCard("facture");
-    const amount = factureCard.amount || getRandomInt(10, 50); // Utilise un montant par défaut si nécessaire
-
+    const baseAmount = factureCard.amount || getRandomInt(10, 50); // Montant de base
+    
+    // Appliquer les effets de facture en attente
+    const finalAmount = applyBillEffects(activeTeamId, baseAmount);
+    
     // Met à jour le texte et le montant dans la modale
     document.getElementById("facture-text").textContent = factureCard.title;
-    document.getElementById("facture-amount").textContent = `-${amount} K`;
+    document.getElementById("facture-amount").textContent = `-${finalAmount} K`;
 
     // Si il y a une description, l'afficher
     const descriptionElement = document.getElementById("facture-description");
     if (descriptionElement) {
-        descriptionElement.textContent = factureCard.description || "";
-        descriptionElement.style.display = factureCard.description
-            ? "block"
-            : "none";
+        let description = factureCard.description || "";
+        
+        // Ajouter une indication si des effets ont été appliqués
+        if (finalAmount !== baseAmount) {
+            description += `\n\n💡 Montant ajusté: ${baseAmount} K → ${finalAmount} K`;
+        }
+        
+        descriptionElement.textContent = description;
+        descriptionElement.style.display = description ? "block" : "none";
     }
 
     // Affiche la carte facture avec l'animation de retournement
@@ -674,21 +726,40 @@ function handleFactureCard() {
     document.getElementById("facture-continue").onclick = () => {
         closeFlipCardModal("facture-modal");
 
-        // Retire le montant du score de l'équipe
-        const gameState = getGameState();
-        updateTeamScore(gameState.activeTeam, -amount);
+        // Retire le montant final du score de l'équipe
+        updateTeamScore(activeTeamId, -finalAmount);
         
         // **Ajout pour l'historique des tours**
-        const activeTeam = gameState.teams[gameState.activeTeam];
+        const activeTeam = gameState.teams[activeTeamId];
         const currentPlayer = activeTeam.players[activeTeam.currentPlayer];
         if (currentPlayer) {
+            const previousScore = currentPlayer.score || 0;
+            const newScore = previousScore - finalAmount;
+            
             updatePlayerTurn(
                 currentPlayer,
-                `Tour: -${amount} K pour facture ${factureCard.title}`,
+                `Facture payée: ${factureCard.title}`,
+                {
+                    scoreChange: -finalAmount,
+                    previousScore: previousScore,
+                    newScore: newScore,
+                    cardType: 'facture',
+                    cardTitle: factureCard.title,
+                    cardDescription: factureCard.description,
+                    cardId: factureCard.id,
+                    actionType: 'paiement',
+                    additionalInfo: {
+                        'Montant de base': `${baseAmount} K€`,
+                        'Montant final': `${finalAmount} K€`,
+                        'Ajustement': finalAmount !== baseAmount ? `${finalAmount - baseAmount} K€` : 'Aucun',
+                        'Effets appliqués': finalAmount !== baseAmount ? 'Oui' : 'Non'
+                    }
+                }
             );
         }
         
         updateTeamsDisplay();
+        updateBillEffectsDisplay();
     };
 }
 
@@ -725,16 +796,20 @@ function handleBiensCard() {
 
         // Ajoute la valeur du bien au score de l'équipe
         const gameState = getGameState();
+        
+        // Appliquer les effets spéciaux des cartes bonus sur la valeur du bien
+        const originalValue = biensCard.value;
+        const finalValue = applyBonusEffects(gameState.activeTeam, originalValue);
 
         console.log(
-            `Updating biens card: Adding ${biensCard.value} to team ${gameState.activeTeam}`,
+            `Updating biens card: Adding ${finalValue} to team ${gameState.activeTeam} (original: ${originalValue})`,
         );
         console.log("État avant mise à jour:", gameState.teams[gameState.activeTeam]);
 
         // Log before update
         debugTeamScores();
 
-        updateTeamScore(gameState.activeTeam, biensCard.value);
+        updateTeamScore(gameState.activeTeam, finalValue);
 
         // Log after update to verify
         console.log("After biens card update:");
@@ -748,9 +823,29 @@ function handleBiensCard() {
         const activeTeam = updatedGameState.teams[updatedGameState.activeTeam];
         const currentPlayer = activeTeam.players[activeTeam.currentPlayer];
         if (currentPlayer) {
+            const previousScore = currentPlayer.score || 0;
+            const newScore = previousScore + finalValue;
+            
             updatePlayerTurn(
                 currentPlayer,
-                `Tour: +${biensCard.value} K pour bien ${biensCard.title}`,
+                `Bien immobilier acquis: ${biensCard.title}`,
+                {
+                    scoreChange: finalValue,
+                    previousScore: previousScore,
+                    newScore: newScore,
+                    cardType: 'biens',
+                    cardTitle: biensCard.title,
+                    cardDescription: biensCard.description,
+                    cardId: biensCard.id,
+                    actionType: 'acquisition',
+                    additionalInfo: {
+                        'Valeur originale': `${originalValue} K€`,
+                        'Valeur finale': `${finalValue} K€`,
+                        'Bonus appliqué': finalValue !== originalValue ? `+${finalValue - originalValue} K€` : 'Aucun',
+                        'Type': 'Bien immobilier',
+                        'Statut': 'Ajouté au portefeuille'
+                    }
+                }
             );
         }
         
@@ -763,7 +858,7 @@ function handleBiensCard() {
             id: biensCard.id,
             title: biensCard.title,
             description: biensCard.description,
-            value: biensCard.value,
+            value: finalValue, // Utiliser la valeur finale avec bonus
         });
 
         updateGameState(updatedGameState);
@@ -806,8 +901,16 @@ function handleInteractionCard() {
     } else {
         // Masquer la zone quiz pour les autres types de cartes
         document.getElementById("quiz-container").style.display = "none";
-        document.getElementById("interaction-teams").style.display = "block";
-        document.getElementById("interaction-skip").style.display = "block";
+        
+        // Afficher les équipes seulement pour les cartes de type "team_effect"
+        if (interactionCard.type === "team_effect") {
+            document.getElementById("interaction-teams").style.display = "block";
+            document.getElementById("interaction-skip").style.display = "none";
+        } else {
+            // Pour les autres types (cost, bonus, etc.), masquer les équipes et afficher le bouton passer
+            document.getElementById("interaction-teams").style.display = "none";
+            document.getElementById("interaction-skip").style.display = "block";
+        }
     }
 
     // Afficher le modal sous forme de carte qui se retourne
@@ -818,17 +921,21 @@ function handleInteractionCard() {
     gameState.currentInteractionCard = interactionCard;
     updateGameState(gameState);
     
-    // Configuration du bouton "Passer" pour l'interaction (seulement pour les cartes non-quiz)
+    // Si c'est une carte d'effet d'équipe, afficher directement les équipes
+    if (interactionCard.type === "team_effect") {
+        console.log("Carte team_effect détectée, affichage des équipes");
+        handleTeamEffectInteraction(interactionCard, gameState);
+        return;
+    }
+    
+    // Configuration du bouton "Passer" pour l'interaction (seulement pour les cartes non-quiz et non-team_effect)
     if (interactionCard.type !== "quiz") {
         document.getElementById("interaction-skip").onclick = () => {
             closeFlipCardModal("interaction-modal");
 
-            // Affiche d'abord la vidéo si nécessaire
-            showVideoModal("00:15");
 
             // Après la vidéo, traite la carte d'interaction
             document.getElementById("skip-video").onclick = () => {
-                toggleModal("video-modal", false);
 
                 // Récupère la carte d'interaction actuelle
                 const currentState = getGameState();
@@ -896,12 +1003,12 @@ function handleInteractionCard() {
                     });
 
                     // Affiche la modale de sélection d'équipe
-                    toggleModal("team-selection-modal", true);
+                    toggleModal("interaction-modal", true);
 
                     // Option pour passer
                     document.getElementById("interaction-skip").onclick =
                         () => {
-                            toggleModal("team-selection-modal", false);
+                            toggleModal("interaction-modal", false);
 
                             // Bonus par défaut si la carte a un montant
                             if (card.amount) {
@@ -929,6 +1036,10 @@ function handleInteractionCard() {
                                         `Tour: +${card.amount} K pour Interaction ${card.title}`,
                                     );
                                 }
+                                
+                                // Afficher le toast
+                                showToast(`${card.title} +${card.amount} K`, 'success', 4000);
+                                
                                 // Log after update to verify
                                 console.log("After interaction skip update:");
                                 debugTeamScores();
@@ -961,6 +1072,9 @@ function handleInteractionCard() {
                                         `Tour: +${defaultBonus} K pour Interaction (bonus par défaut)`,
                                     );
                                 }
+                                
+                                // Afficher le toast de bonus par défaut
+                                showToast(`Bonus par défaut +${defaultBonus} K`, 'success', 4000);
 
                                 // Log after update to verify
                                 console.log("After interaction skip update:");
@@ -974,50 +1088,26 @@ function handleInteractionCard() {
 
                     const amount = card.amount || getRandomInt(1, 3) * 50;
 
-                    // Met à jour le texte et le montant dans la modale bonus
-                    document.getElementById("bonus-text").textContent = card.title || "Bonus";
+                    // Fermer la modale d'interaction
+                    toggleModal("interaction-modal", false);
 
-                    const amountEl = document.getElementById("bonus-amount");
-                    const a = Number(amount) || 0;
-                    const sign = a < 0 ? "-" : a > 0 ? "+" : "";
-                    amountEl.textContent = `${sign}${Math.abs(a)} K`;
-
-                    // Toggle des classes selon le signe (évite le inline style)
-                    amountEl.classList.toggle("danger-amount", a < 0);
-                    amountEl.classList.toggle("success-amount", a > 0);
-                    // Nettoie un éventuel style inline résiduel
-                    amountEl.style.removeProperty("color");
-
-                    // Description
-                    const bonusDescElement = document.getElementById("bonus-description");
-                    if (bonusDescElement) {
-                    const hasDesc = !!card.description;
-                    bonusDescElement.textContent = hasDesc ? card.description : "";
-                    bonusDescElement.style.display = hasDesc ? "block" : "none";
+                    // Ajouter le montant au score de l'équipe
+                    updateTeamScore(currentState.activeTeam, amount);
+                    
+                    // **Ajout pour l'historique des tours**
+                    const activeTeam = currentState.teams[currentState.activeTeam];
+                    const currentPlayer = activeTeam.players[activeTeam.currentPlayer];
+                    if (currentPlayer) {
+                        updatePlayerTurn(
+                            currentPlayer,
+                            `Tour: +${amount} K pour Interaction ${card.title}`,
+                        );
                     }
-
-                    // Affiche la modale bonus avec l'animation de retournement
-                    showFlipCardModal("bonus");
-
-                    // Quand l'utilisateur clique sur continuer, ferme la modale et met à jour le score
-                    document.getElementById("bonus-continue").onclick = () => {
-                        closeFlipCardModal("bonus-modal");
-
-                        // Ajoute le montant au score de l'équipe
-                        updateTeamScore(currentState.activeTeam, amount);
-                        
-                        // **Ajout pour l'historique des tours**
-                        const activeTeam = currentState.teams[currentState.activeTeam];
-                        const currentPlayer = activeTeam.players[activeTeam.currentPlayer];
-                        if (currentPlayer) {
-                            updatePlayerTurn(
-                                currentPlayer,
-                                `Tour: +${amount} K pour Interaction ${card.title}`,
-                            );
-                        }
-                        
-                        updateTeamsDisplay();
-                    };
+                    
+                    // Afficher le toast de succès
+                    showToast(`${card.title || "Bonus"} +${amount} K`, 'success', 4000);
+                    
+                    updateTeamsDisplay();
                 }
             };
         };
@@ -1061,48 +1151,48 @@ function handleQuizAnswer(isCorrect, card, clickedButton) {
         const activeTeam = gameState.teams[gameState.activeTeam];
         const currentPlayer = activeTeam.players[activeTeam.currentPlayer];
         if (currentPlayer) {
+            const correctAnswer = card.answers.find(a => a.correct);
+            const givenAnswer = clickedButton.textContent;
+            const previousScore = currentPlayer.score || 0;
+            const newScore = previousScore + amount;
+            
             updatePlayerTurn(
                 currentPlayer,
-                `Tour: ${amount > 0 ? '+' : ''}${amount} K pour Quiz "${card.title}" - ${resultText}`,
+                `Quiz ${isCorrect ? 'réussi' : 'échoué'}: ${card.title}`,
+                {
+                    scoreChange: amount,
+                    previousScore: previousScore,
+                    newScore: newScore,
+                    cardType: 'interaction',
+                    cardTitle: card.title,
+                    cardDescription: card.description,
+                    cardId: card.id,
+                    actionType: 'quiz',
+                    quizAnswer: givenAnswer,
+                    isCorrectAnswer: isCorrect,
+                    additionalInfo: {
+                        'Question': card.title,
+                        'Réponse donnée': givenAnswer,
+                        'Bonne réponse': correctAnswer ? correctAnswer.text : 'Non définie',
+                        'Résultat': isCorrect ? 'Correct ✅' : 'Incorrect ❌',
+                        'Récompense/Pénalité': `${amount > 0 ? '+' : ''}${amount} K€`,
+                        'Type de question': 'Quiz d\'interaction'
+                    }
+                }
             );
         }
         
-        // Afficher le résultat dans la modale bonus/malus
+        // Afficher le toast coloré selon le résultat
         if (isCorrect) {
-            // Afficher la modale bonus
-            document.getElementById("bonus-text").textContent = "Bonne réponse !";
-            document.getElementById("bonus-amount").textContent = `+${card.correctReward} K`;
-            
-            const bonusDescElement = document.getElementById("bonus-description");
-            if (bonusDescElement) {
-                bonusDescElement.textContent = card.title;
-                bonusDescElement.style.display = "block";
-            }
-            
-            showFlipCardModal("bonus");
-            
-            document.getElementById("bonus-continue").onclick = () => {
-                closeFlipCardModal("bonus-modal");
-                updateTeamsDisplay();
-            };
+            showToast(`${resultText} +${card.correctReward} K`, 'success', 4000);
         } else {
-            // Afficher la modale malus 
-            document.getElementById("bonus-text").textContent = "Mauvaise réponse...";
-            document.getElementById("bonus-amount").textContent = `-${card.wrongPenalty} K`;
-            
-            const bonusDescElement = document.getElementById("bonus-description");
-            if (bonusDescElement) {
-                bonusDescElement.textContent = `Bonne réponse: ${card.answers.find(a => a.correct).text}`;
-                bonusDescElement.style.display = "block";
-            }
-            
-            showFlipCardModal("bonus");
-            
-            document.getElementById("bonus-continue").onclick = () => {
-                closeFlipCardModal("bonus-modal");
-                updateTeamsDisplay();
-            };
+            const correctAnswer = card.answers.find(a => a.correct);
+            showToast(`${resultText} -${card.wrongPenalty} K (Réponse: ${correctAnswer.text})`, 'error', 5000);
         }
+        
+        // Mettre à jour l'affichage
+        updateTeamsDisplay();
+        
     }, 1500); // Attendre 1.5 secondes pour voir le résultat
 }
 
@@ -1111,7 +1201,14 @@ function handleQuizAnswer(isCorrect, card, clickedButton) {
  */
 function handleTeamEffectInteraction(card, currentState) {
     const interactionTeamsContainer = document.getElementById("interaction-teams");
+    
+    if (!interactionTeamsContainer) {
+        console.error("Élément interaction-teams introuvable !");
+        return;
+    }
+    
     interactionTeamsContainer.innerHTML = "";
+    console.log("Conteneur interaction-teams vidé");
 
     console.log("handleTeamEffectInteraction - Active team ID:", currentState.activeTeam, "Type:", typeof currentState.activeTeam);
     console.log("handleTeamEffectInteraction - All teams:", Object.entries(currentState.teams).map(([id, team]) => ({ id, name: team.name, active: team.active })));
@@ -1143,9 +1240,14 @@ function handleTeamEffectInteraction(card, currentState) {
             teamOption.onclick = () =>
                 handleTeamInteraction(parseInt(id), card.effect, card.value);
             interactionTeamsContainer.appendChild(teamOption);
+            
+            console.log(`Équipe ajoutée: ${team.name} (ID: ${id})`);
         });
 
-        toggleModal("team-selection-modal", true);
+        console.log("Nombre d'équipes ajoutées:", activeTeams.length);
+        console.log("Contenu du conteneur:", interactionTeamsContainer.innerHTML);
+        
+        toggleModal("interaction-modal", true);
     } else {
         handleDirectEffectInteraction(card, currentState);
     }
@@ -1169,43 +1271,216 @@ function handleDirectEffectInteraction(card, currentState) {
         isNegative = false;
     }
 
-    // Configurer l'affichage selon le type
+    // Fermer la modale d'interaction
+    closeFlipCardModal("interaction-modal");
+    
+    // Appliquer le montant (positif ou négatif)
+    const finalAmount = isNegative ? -amount : amount;
+    updateTeamScore(currentState.activeTeam, finalAmount);
+    
+    const activeTeam = currentState.teams[currentState.activeTeam];
+    const currentPlayer = activeTeam.players[activeTeam.currentPlayer];
+    if (currentPlayer) {
+        updatePlayerTurn(
+            currentPlayer,
+            `Tour: ${finalAmount > 0 ? '+' : ''}${finalAmount} K pour ${card.title}`,
+        );
+    }
+    
+    // Afficher le toast coloré selon le type d'effet
     if (isNegative) {
-        document.getElementById("bonus-text").textContent = card.title || "Malus";
-        document.getElementById("bonus-amount").textContent = `-${amount} K`;
-        document.getElementById("bonus-amount").classList.add("danger-amount");
+        showToast(`${card.title} -${amount} K`, 'error', 4000);
     } else {
-        document.getElementById("bonus-text").textContent = card.title || "Bonus";
-        document.getElementById("bonus-amount").textContent = `+${amount} K`;
-        document.getElementById("bonus-amount").classList.remove("danger-amount");
+        showToast(`${card.title} +${amount} K`, 'success', 4000);
     }
+    
+    updateTeamsDisplay();
+}
 
-    const bonusDescElement = document.getElementById("bonus-description");
-    if (bonusDescElement) {
-        bonusDescElement.textContent = card.description || "";
-        bonusDescElement.style.display = card.description ? "block" : "none";
+/**
+ * Ajoute un effet sur la prochaine facture d'une équipe
+ */
+function addBillEffect(targetTeamId, effectType, value) {
+    const gameState = getGameState();
+    const targetTeam = gameState.teams[targetTeamId];
+    
+    if (!targetTeam) {
+        console.error(`Équipe ${targetTeamId} non trouvée`);
+        return;
     }
+    
+    // Initialiser les effets de facture si nécessaire
+    if (!targetTeam.billEffects) {
+        targetTeam.billEffects = [];
+    }
+    
+    // Ajouter le nouvel effet
+    const effect = {
+        type: effectType, // "increase" ou "reduction"
+        value: value,     // pourcentage
+        applied: false,   // pour marquer si l'effet a été utilisé
+        source: `Équipe ${gameState.activeTeam}` // qui a appliqué l'effet
+    };
+    
+    targetTeam.billEffects.push(effect);
+    
+    // Sauvegarder l'état
+    updateGameState(gameState);
+    
+    console.log(`Effet de facture ajouté à l'équipe ${targetTeamId}:`, effect);
+}
 
-    showFlipCardModal("bonus");
+/**
+ * Applique et consomme les effets de facture en attente pour une équipe
+ */
+function applyBillEffects(teamId, originalAmount) {
+    const gameState = getGameState();
+    const team = gameState.teams[teamId];
+    
+    if (!team || !team.billEffects || team.billEffects.length === 0) {
+        return originalAmount; // Aucun effet à appliquer
+    }
+    
+    let finalAmount = originalAmount;
+    const appliedEffects = [];
+    
+    // Appliquer tous les effets en attente
+    team.billEffects.forEach(effect => {
+        if (!effect.applied) {
+            if (effect.type === "increase") {
+                finalAmount = finalAmount * (1 + effect.value / 100);
+                appliedEffects.push(`+${effect.value}%`);
+            } else if (effect.type === "reduction") {
+                finalAmount = finalAmount * (1 - effect.value / 100);
+                appliedEffects.push(`-${effect.value}%`);
+            }
+            effect.applied = true; // Marquer comme utilisé
+        }
+    });
+    
+    // Supprimer les effets appliqués
+    team.billEffects = team.billEffects.filter(effect => !effect.applied);
+    
+    // Sauvegarder l'état mis à jour
+    updateGameState(gameState);
+    
+    // Afficher les effets appliqués
+    if (appliedEffects.length > 0) {
+        const effectsText = appliedEffects.join(', ');
+        showNotification(`Effets appliqués sur la facture de ${team.name}: ${effectsText}`, 4000);
+        console.log(`Effets de facture appliqués à ${team.name}: ${effectsText}. Montant: ${originalAmount} → ${Math.round(finalAmount)}`);
+    }
+    
+    return Math.round(finalAmount);
+}
 
-    document.getElementById("bonus-continue").onclick = () => {
-        closeFlipCardModal("bonus-modal");
+/**
+ * Applique les effets spéciaux des cartes bonus sur les transactions (vente de biens)
+ */
+function applyBonusEffects(teamId, originalAmount) {
+    const gameState = getGameState();
+    const team = gameState.teams[teamId];
+    
+    if (!team || !team.effects || team.effects.length === 0) {
+        return originalAmount; // Pas d'effets à appliquer
+    }
+    
+    let finalAmount = originalAmount;
+    const appliedEffects = [];
+    
+    // Appliquer chaque effet non encore appliqué
+    team.effects.forEach(effect => {
+        if (!effect.applied) {
+            switch (effect.type) {
+                case "increase":
+                    // Augmentation de pourcentage sur la transaction
+                    finalAmount = finalAmount * (1 + effect.value / 100);
+                    appliedEffects.push(`+${effect.value}% (Cession majorée)`);
+                    effect.applied = true;
+                    break;
+                case "reduction":
+                    // Réduction de pourcentage sur la transaction (si applicable)
+                    finalAmount = finalAmount * (1 - effect.value / 100);
+                    appliedEffects.push(`-${effect.value}% (Cession minorée)`);
+                    effect.applied = true;
+                    break;
+                case "no_rent":
+                    // Effet spécial "Pas de loyer" - pourrait être appliqué différemment
+                    appliedEffects.push("Pas de loyer au prochain tour");
+                    effect.applied = true;
+                    break;
+            }
+        }
+    });
+    
+    // Supprimer les effets appliqués
+    team.effects = team.effects.filter(effect => !effect.applied);
+    
+    // Sauvegarder l'état mis à jour
+    updateGameState(gameState);
+    
+    // Afficher les effets appliqués
+    if (appliedEffects.length > 0) {
+        const effectsText = appliedEffects.join(', ');
+        showNotification(`Effets bonus appliqués à ${team.name}: ${effectsText}`, 4000);
+        console.log(`Effets bonus appliqués à ${team.name}: ${effectsText}. Montant: ${originalAmount} → ${Math.round(finalAmount)}`);
+    }
+    
+    return Math.round(finalAmount);
+}
+
+/**
+ * Met à jour l'affichage des effets de facture en attente pour toutes les équipes
+ */
+function updateBillEffectsDisplay() {
+    const gameState = getGameState();
+    
+    // Parcourir toutes les équipes actives
+    Object.entries(gameState.teams).forEach(([teamId, team]) => {
+        if (!team.active) return;
         
-        // Appliquer le montant (positif ou négatif)
-        const finalAmount = isNegative ? -amount : amount;
-        updateTeamScore(currentState.activeTeam, finalAmount);
+        const scoreBlock = document.querySelector(`#team${teamId}-score`);
+        if (!scoreBlock) return;
         
-        const activeTeam = currentState.teams[currentState.activeTeam];
-        const currentPlayer = activeTeam.players[activeTeam.currentPlayer];
-        if (currentPlayer) {
-            updatePlayerTurn(
-                currentPlayer,
-                `Tour: ${finalAmount > 0 ? '+' : ''}${finalAmount} K pour ${card.title}`,
-            );
+        // Supprimer les anciens indicateurs d'effets
+        const existingIndicator = scoreBlock.querySelector('.bill-effects-indicator');
+        if (existingIndicator) {
+            existingIndicator.remove();
         }
         
-        updateTeamsDisplay();
-    };
+        // Ajouter un nouvel indicateur si l'équipe a des effets en attente
+        if (team.billEffects && team.billEffects.length > 0) {
+            const indicator = document.createElement('div');
+            indicator.className = 'bill-effects-indicator';
+            
+            // Calculer l'effet total
+            let totalIncrease = 0;
+            let totalReduction = 0;
+            
+            team.billEffects.forEach(effect => {
+                if (!effect.applied) {
+                    if (effect.type === 'increase') {
+                        totalIncrease += effect.value;
+                    } else if (effect.type === 'reduction') {
+                        totalReduction += effect.value;
+                    }
+                }
+            });
+            
+            let indicatorText = '⚡';
+            if (totalIncrease > 0 && totalReduction > 0) {
+                indicatorText += ` +${totalIncrease}%/-${totalReduction}%`;
+            } else if (totalIncrease > 0) {
+                indicatorText += ` +${totalIncrease}%`;
+            } else if (totalReduction > 0) {
+                indicatorText += ` -${totalReduction}%`;
+            }
+            
+            indicator.textContent = indicatorText;
+            indicator.title = `Cette équipe a des effets en attente sur sa prochaine facture`;
+            scoreBlock.appendChild(indicator);
+        }
+    });
 }
 
 /**
@@ -1217,10 +1492,78 @@ function handleTeamInteraction(targetTeamId, effect, value) {
     console.log(`Applying team interaction: ${effect} ${value} to team ${targetTeamId}`);
     
     // Fermer la modale de sélection d'équipe
-    toggleModal("team-selection-modal", false);
+    closeFlipCardModal("interaction-modal");
     
     // Appliquer l'effet selon le type
-    if (effect === "bonus") {
+    if (effect === "team_increase") {
+        // Ajouter un effet d'augmentation sur la prochaine facture
+        addBillEffect(targetTeamId, "increase", value);
+        
+        // Ajouter à l'historique de l'équipe active (qui a joué la carte)
+        const activeTeam = gameState.teams[gameState.activeTeam];
+        const currentPlayer = activeTeam.players[activeTeam.currentPlayer];
+        if (currentPlayer) {
+            const currentCard = gameState.currentInteractionCard;
+            updatePlayerTurn(
+                currentPlayer,
+                `Effet d'augmentation appliqué à ${gameState.teams[targetTeamId].name}`,
+                {
+                    scoreChange: 0,
+                    cardType: 'interaction',
+                    cardTitle: currentCard ? currentCard.title : 'Carte d\'interaction',
+                    cardDescription: currentCard ? currentCard.description : '',
+                    cardId: currentCard ? currentCard.id : null,
+                    actionType: 'effet_equipe',
+                    targetTeam: gameState.teams[targetTeamId].name,
+                    effect: `Hausse énergétique +${value}%`,
+                    additionalInfo: {
+                        'Type d\'effet': 'Augmentation des factures',
+                        'Équipe ciblée': gameState.teams[targetTeamId].name,
+                        'Pourcentage': `+${value}%`,
+                        'Application': 'Prochaine facture',
+                        'Durée': 'Un tour'
+                    }
+                }
+            );
+        }
+        
+        showToast(`${gameState.teams[targetTeamId].name} : +${value}% sur prochaine facture !`, 'error', 4000);
+        
+    } else if (effect === "team_reduction") {
+        // Ajouter un effet de réduction sur la prochaine facture
+        addBillEffect(targetTeamId, "reduction", value);
+        
+        // Ajouter à l'historique de l'équipe active
+        const activeTeam = gameState.teams[gameState.activeTeam];
+        const currentPlayer = activeTeam.players[activeTeam.currentPlayer];
+        if (currentPlayer) {
+            const currentCard = gameState.currentInteractionCard;
+            updatePlayerTurn(
+                currentPlayer,
+                `Effet de réduction appliqué à ${gameState.teams[targetTeamId].name}`,
+                {
+                    scoreChange: 0,
+                    cardType: 'interaction',
+                    cardTitle: currentCard ? currentCard.title : 'Carte d\'interaction',
+                    cardDescription: currentCard ? currentCard.description : '',
+                    cardId: currentCard ? currentCard.id : null,
+                    actionType: 'effet_equipe',
+                    targetTeam: gameState.teams[targetTeamId].name,
+                    effect: `Bouclier tarifaire -${value}%`,
+                    additionalInfo: {
+                        'Type d\'effet': 'Réduction des factures',
+                        'Équipe ciblée': gameState.teams[targetTeamId].name,
+                        'Pourcentage': `-${value}%`,
+                        'Application': 'Prochaine facture',
+                        'Durée': 'Un tour'
+                    }
+                }
+            );
+        }
+        
+        showToast(`${gameState.teams[targetTeamId].name} : -${value}% sur prochaine facture !`, 'success', 4000);
+        
+    } else if (effect === "bonus") {
         // Donner un bonus à l'équipe cible
         updateTeamScore(targetTeamId, value);
         
@@ -1234,7 +1577,7 @@ function handleTeamInteraction(targetTeamId, effect, value) {
             );
         }
         
-        showNotification(`Bonus de +${value} K donné à ${gameState.teams[targetTeamId].name} !`);
+        showToast(`${gameState.teams[targetTeamId].name} : +${value} K`, 'success', 4000);
         
     } else if (effect === "malus") {
         // Donner un malus à l'équipe cible
@@ -1250,7 +1593,7 @@ function handleTeamInteraction(targetTeamId, effect, value) {
             );
         }
         
-        showNotification(`Malus de -${value} K infligé à ${gameState.teams[targetTeamId].name} !`);
+        showToast(`${gameState.teams[targetTeamId].name} : -${value} K`, 'error', 4000);
         
     } else {
         // Effet par défaut - bonus
@@ -1265,11 +1608,12 @@ function handleTeamInteraction(targetTeamId, effect, value) {
             );
         }
         
-        showNotification(`Effet appliqué à ${gameState.teams[targetTeamId].name} !`);
+        showToast(`Effet appliqué à ${gameState.teams[targetTeamId].name} !`, 'success', 4000);
     }
     
     // Mettre à jour l'affichage
     updateTeamsDisplay();
+    updateBillEffectsDisplay();
 }
 
 // Fonction pour déboguer les scores des équipes
@@ -1320,9 +1664,29 @@ function handlePDBCard() {
         const activeTeam = gameState.teams[gameState.activeTeam];
         const currentPlayer = activeTeam.players[activeTeam.currentPlayer];
         if (currentPlayer) {
+            const previousScore = currentPlayer.score || 0;
+            const newScore = previousScore - amount;
+            
             updatePlayerTurn(
                 currentPlayer,
-                `Tour: -${amount} K pour PDB "${pdbCard.title}"`,
+                `Problème rencontré: ${pdbCard.title}`,
+                {
+                    scoreChange: -amount,
+                    previousScore: previousScore,
+                    newScore: newScore,
+                    cardType: 'pdb',
+                    cardTitle: pdbCard.title,
+                    cardDescription: pdbCard.description,
+                    cardId: pdbCard.id,
+                    actionType: 'malus',
+                    additionalInfo: {
+                        'Type de problème': 'Pas de Bol (PDB)',
+                        'Montant de la perte': `${amount} K€`,
+                        'Montant min possible': `${pdbCard.minAmount} K€`,
+                        'Montant max possible': `${pdbCard.maxAmount} K€`,
+                        'Impact': 'Perte financière'
+                    }
+                }
             );
         }
 
@@ -1357,10 +1721,17 @@ function showNotification(message, duration = 3000) {
  * Gère l'affichage et le traitement des cartes Vidéo
  */
 function handleVideoCard() {
+    // Mettre en pause le son de fond dicelandBG
+    if (window.dicelandBG && !window.dicelandBG.paused) {
+        window.dicelandBG.pause();
+        window.videoPausedBG = true; // Marquer qu'on a mis en pause pour reprendre plus tard
+        console.log("Son de fond mis en pause pour la vidéo");
+    }
+    
     // Vérifier s'il reste des vidéos non vues
     if (!hasUnwatchedVideos()) {
         // Toutes les vidéos ont été vues, donner un bonus par défaut
-        showNotification("Toutes les vidéos ont déjà été visionnées ! Bonus automatique.");
+        showToast("Toutes les vidéos ont déjà été visionnées ! Bonus automatique +100 K", 'success', 4000);
         
         const gameState = getGameState();
         const bonusAmount = 100;
@@ -1376,6 +1747,13 @@ function handleVideoCard() {
         }
         
         updateTeamsDisplay();
+        
+        // Reprendre le son de fond
+        if (window.videoPausedBG && window.dicelandBG) {
+            window.dicelandBG.play().catch((e) => console.log("Erreur reprise son:", e));
+            window.videoPausedBG = false;
+        }
+        
         return;
     }
 
@@ -1383,6 +1761,11 @@ function handleVideoCard() {
     const video = getRandomUnwatchedVideo();
     if (!video) {
         console.error("Aucune vidéo disponible");
+        // Reprendre le son de fond en cas d'erreur
+        if (window.videoPausedBG && window.dicelandBG) {
+            window.dicelandBG.play().catch((e) => console.log("Erreur reprise son:", e));
+            window.videoPausedBG = false;
+        }
         return;
     }
 
@@ -1406,12 +1789,20 @@ function handleVideoCard() {
     // Stocker les données de la vidéo pour les questions
     window.currentVideoData = video;
     
+    // Lancer automatiquement la vidéo après un court délai
+    setTimeout(() => {
+        videoPlayer.play().catch((e) => {
+            console.log("Impossible de lancer la vidéo automatiquement:", e);
+            showToast("Cliquez sur la vidéo pour la démarrer", 'success', 3000);
+        });
+    }, 500);
+    
     // Écouter la fin de la vidéo
     videoPlayer.onended = () => {
         showVideoQuestions(video);
     };
     
-    // Permettre de passer la vidéo (pour les tests)
+    // Permettre de contrôler la vidéo (play/pause)
     videoPlayer.onclick = () => {
         if (videoPlayer.paused) {
             videoPlayer.play();
@@ -1427,9 +1818,16 @@ function handleVideoCard() {
 function showVideoQuestions(video) {
     if (!video.questions || video.questions.length === 0) {
         // Pas de questions, donner un bonus automatique
-        showNotification("Vidéo visionnée ! Bonus automatique.");
+        showToast("Vidéo visionnée ! Bonus automatique +50 K", 'success', 4000);
         const gameState = getGameState();
         updateTeamScore(gameState.activeTeam, 50);
+        
+        // Reprendre le son de fond
+        if (window.videoPausedBG && window.dicelandBG) {
+            window.dicelandBG.play().catch((e) => console.log("Erreur reprise son:", e));
+            window.videoPausedBG = false;
+        }
+        
         toggleModal("video-quiz-modal", false);
         updateTeamsDisplay();
         return;
@@ -1488,6 +1886,12 @@ function handleVideoQuizAnswer(isCorrect, question, clickedButton) {
     
     // Attendre un peu pour que l'utilisateur voie le résultat
     setTimeout(() => {
+        // Reprendre le son de fond avant de fermer la modale
+        if (window.videoPausedBG && window.dicelandBG) {
+            window.dicelandBG.play().catch((e) => console.log("Erreur reprise son:", e));
+            window.videoPausedBG = false;
+        }
+        
         toggleModal("video-quiz-modal", false);
         
         // Calculer le bonus/malus
@@ -1507,11 +1911,12 @@ function handleVideoQuizAnswer(isCorrect, question, clickedButton) {
             );
         }
         
-        // Afficher le résultat
+        // Afficher le toast coloré selon le résultat
         if (isCorrect) {
-            showNotification(`${resultText} +${question.correctReward} K`);
+            showToast(`${resultText} +${question.correctReward} K`, 'success', 4000);
         } else {
-            showNotification(`${resultText} -${question.wrongPenalty} K`);
+            const correctAnswer = question.answers.find(a => a.correct);
+            showToast(`${resultText} -${question.wrongPenalty} K (Réponse: ${correctAnswer.text})`, 'error', 5000);
         }
         
         updateTeamsDisplay();

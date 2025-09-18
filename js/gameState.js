@@ -57,11 +57,65 @@ function resetGameState() {
     
     return freshState;
 }
-function updatePlayerTurn(player, description) {
+function updatePlayerTurn(player, description, details = {}) {
     if (!player.turnHistory) {
         player.turnHistory = [];
     }
-    player.turnHistory.push(description);  // Ajoute une description pour ce tour
+    
+    // Créer un objet détaillé pour l'historique
+    const turnEntry = {
+        timestamp: new Date().toLocaleString('fr-FR'),
+        description: description,
+        turnNumber: player.turnHistory.length + 1,
+        scoreChange: details.scoreChange || 0,
+        previousScore: details.previousScore || 0,
+        newScore: details.newScore || 0,
+        cardType: details.cardType || 'unknown',
+        cardTitle: details.cardTitle || '',
+        cardDescription: details.cardDescription || '',
+        cardId: details.cardId || null,
+        actionType: details.actionType || 'game',
+        // Détails spécifiques selon le type de carte
+        cardDetails: {
+            originalAmount: details.originalAmount || null,
+            finalAmount: details.finalAmount || null,
+            modifiers: details.modifiers || [],
+            targetTeam: details.targetTeam || null,
+            effect: details.effect || null,
+            quizAnswer: details.quizAnswer || null,
+            isCorrectAnswer: details.isCorrectAnswer || null,
+            additionalInfo: details.additionalInfo || {}
+        }
+    };
+    
+    player.turnHistory.push(turnEntry);
+}
+
+/**
+ * Fonction helper pour simplifier l'ajout d'historique avec score
+ */
+function addPlayerHistory(teamId, description, scoreChange, cardType, cardTitle = '') {
+    const gameState = getGameState();
+    const team = gameState.teams[teamId];
+    
+    if (team && team.players && team.players[team.currentPlayer]) {
+        const currentPlayer = team.players[team.currentPlayer];
+        const previousScore = currentPlayer.score || 0;
+        const newScore = previousScore + scoreChange;
+        
+        updatePlayerTurn(
+            currentPlayer,
+            description,
+            {
+                scoreChange: scoreChange,
+                previousScore: previousScore,
+                newScore: newScore,
+                cardType: cardType,
+                cardTitle: cardTitle,
+                actionType: scoreChange > 0 ? 'gain' : scoreChange < 0 ? 'perte' : 'neutre'
+            }
+        );
+    }
 }
 function recalcTeamScore(teamId) {
     const gameState = getGameState();
