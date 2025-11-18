@@ -4,7 +4,7 @@ Un jeu de plateau numérique immobilier français avec des mécaniques de jeu co
 
 ## 📋 Description du Jeu
 
-"La Bonne Gestion Immobilière" est un jeu de gestion immobilière multijoueur inspiré du Monopoly, entièrement développé en JavaScript vanilla. Les équipes se déplacent sur un plateau en spirale, tirent des cartes thématiques et gèrent un portefeuille immobilier virtuel tout en accumulant des points.
+Jeu multijoueur inspiré du Monopoly pour entraîner les agents aux situations immobilières (budget, arbitrages, cartes thématiques). Les équipes gèrent un portefeuille virtuel, s'entrainent à perdre/gagner de l'argent et répondent aux enjeux de la DGFiP tout en accumulant des points.
 
 ## ✨ Caractéristiques Principales
 
