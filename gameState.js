@@ -51,6 +51,7 @@ function resetGameState() {
     freshState.dice = 1;
     freshState.gameTime = 30 * 60; // 30 minutes
     freshState.timerStarted = false;
+    freshState.roundRobinPointer = 0;
     freshState.gameBoard = generateInitialBoard();
     
     console.log("État du jeu réinitialisé avec succès, tous les scores sont à 0");
@@ -70,6 +71,37 @@ function recalcTeamScore(teamId) {
 
     team.score = team.players.reduce((sum, player) => sum + (player.score || 0), 0);
     updateGameState(gameState);
+}
+
+function getActiveTeamIds(teams) {
+    return Object.keys(teams)
+        .map(Number)
+        .filter(teamId => teams[teamId] && teams[teamId].active)
+        .sort((a, b) => a - b);
+}
+
+function buildRoundRobinQueue(teams) {
+    const activeTeamIds = getActiveTeamIds(teams);
+    if (activeTeamIds.length === 0) return [];
+
+    const maxPlayerCount = Math.max(...activeTeamIds.map(teamId => {
+        const players = teams[teamId].players;
+        return Array.isArray(players) ? players.length : 0;
+    }));
+
+    if (maxPlayerCount === 0) return [];
+
+    const queue = [];
+    for (let playerIndex = 0; playerIndex < maxPlayerCount; playerIndex++) {
+        for (const teamId of activeTeamIds) {
+            const players = teams[teamId].players;
+            if (Array.isArray(players) && players.length > playerIndex) {
+                queue.push({ teamId, playerIndex });
+            }
+        }
+    }
+
+    return queue;
 }
 document.addEventListener('DOMContentLoaded', function() {
     const teamCards = document.querySelectorAll('.team-card');
@@ -136,19 +168,35 @@ function updateTeamScore(teamId, amount) {
  */
 function advanceTurn() {
     const gameState = getGameState();
-    const activeTeam = gameState.teams[gameState.activeTeam];
+    const queue = buildRoundRobinQueue(gameState.teams);
 
-    if (!activeTeam) return gameState;
+    if (!queue.length) return gameState;
 
-    // Move to the next player in the active team
-    activeTeam.currentPlayer = (activeTeam.currentPlayer + 1) % activeTeam.players.length;
+    const activeTeamId = gameState.activeTeam;
+    const activePlayerIndex = gameState.teams[activeTeamId]
+        ? gameState.teams[activeTeamId].currentPlayer
+        : 0;
 
-    // If we loop back to the first player, switch to the next team
-    if (activeTeam.currentPlayer === 0) {
-        gameState.activeTeam = getNextActiveTeam(gameState.activeTeam, gameState.teams);
+    let nextIndex = queue.findIndex(
+        (entry) => entry.teamId === activeTeamId && entry.playerIndex === activePlayerIndex,
+    );
+
+    const pointer = Number.isInteger(gameState.roundRobinPointer)
+        ? gameState.roundRobinPointer
+        : 0;
+
+    if (nextIndex === -1) {
+        nextIndex = pointer % queue.length;
+    } else {
+        nextIndex = (nextIndex + 1) % queue.length;
     }
 
-    // Increment the turn counter
+    const { teamId, playerIndex } = queue[nextIndex];
+    gameState.activeTeam = teamId;
+    gameState.teams[teamId].currentPlayer = playerIndex;
+
+    gameState.roundRobinPointer = (nextIndex + 1) % queue.length;
+
     gameState.currentTurn++;
 
     return updateGameState(gameState);

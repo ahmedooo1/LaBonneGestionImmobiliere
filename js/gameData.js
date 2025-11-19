@@ -207,5 +207,6 @@ const INITIAL_GAME_STATE = {
     dice: 1,
     gameTime: 30 * 60, // 30 minutes en secondes
     timerStarted: false, // Indique si le timer a été démarré
+    roundRobinPointer: 0,
     gameBoard: generateInitialBoard(),
 };

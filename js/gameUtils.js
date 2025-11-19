@@ -21,18 +21,6 @@ function getRandomInt(min, max) {
 /**
  * Calcule la prochaine équipe active
  */
-function getNextActiveTeam(currentTeam, teams) {
-    const teamIds = Object.keys(teams).map(Number);
-    const activeTeamIds = teamIds.filter(id => teams[id].active);
-    
-    if (activeTeamIds.length === 0) return currentTeam;
-    
-    const currentIndex = activeTeamIds.indexOf(currentTeam);
-    const nextIndex = (currentIndex + 1) % activeTeamIds.length;
-    
-    return activeTeamIds[nextIndex];
-}
-
 /**
  * Mélange un tableau avec l'algorithme de Fisher-Yates
  */
